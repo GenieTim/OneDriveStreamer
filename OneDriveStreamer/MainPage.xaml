@@ -1,0 +1,36 @@
+﻿<Page
+    x:Class="OneDriveStreamer.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OneDriveStreamer"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer>
+        <VariableSizedWrapGrid MaximumRowsOrColumns="3" Orientation="Vertical">
+            <ItemsControl ItemsSource="{ x:Bind fileItems }" x:Name="filesListControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Click="File_OnClick" Margin="5">
+                            <Grid Padding="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Image
+                            x:Name="gridImage"
+                            Width="36"
+                            VerticalAlignment="Top"
+                            Source="{ Binding Image}"
+                            Stretch="Uniform" />
+                                <TextBlock Text="{ Binding Name }" />
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </VariableSizedWrapGrid>
+    </ScrollViewer>
+</Page>
