@@ -7,6 +7,10 @@ using MimeTypes;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Core;
+using System;
+using Windows.UI.Popups;
+using Microsoft.OneDrive.Sdk;
+using System.Collections.Generic;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -17,6 +21,9 @@ namespace OneDriveStreamer
     /// </summary>
     public sealed partial class MoviePlayerPage : Page
     {
+        private List<string> pathComponents = new List<string>();
+        private OneDriveClient oneDriveClient;
+
         public MoviePlayerPage()
         {
             this.InitializeComponent();
@@ -28,14 +35,57 @@ namespace OneDriveStreamer
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             var parameters = (VideoNavigationParameter)e.Parameter;
-            var client = parameters.oneDriveClient;
-            var pathComp = parameters.PathComponents;
-            var videoPath = "/" + string.Join("/", pathComp);
-            var builder = client.Drive.Root.ItemWithPath(videoPath);
-            var file = await builder.Request().GetAsync();
-            Stream contentStream = await builder.Content.Request().GetAsync();
-            string mimeType = MimeTypeMap.GetMimeType(file.Name);
-            mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+            this.oneDriveClient = parameters.oneDriveClient;
+            this.pathComponents = parameters.PathComponents;
+            this.initializeMovie();
+        }
+        private async void initializeMovie(IUICommand c)
+        {
+            this.initializeMovie();
+        }
+
+        private async void initializeMovie()
+        {
+            var videoPath = "/" + string.Join("/", this.pathComponents);
+            try
+            {
+                var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
+                var file = await builder.Request().GetAsync();
+                Stream contentStream = await builder.Content.Request().GetAsync();
+                string mimeType = MimeTypeMap.GetMimeType(file.Name);
+                mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+            }
+            catch (Exception ex)
+            {
+                this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+            }
+        }
+
+        private async void ExitOrRetryWithMessage(string message)
+        {
+            // Create the message dialog and set its content
+            var messageDialog = new MessageDialog(message);
+
+            // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
+            messageDialog.Commands.Add(new UICommand(
+                "Try again",
+                new UICommandInvokedHandler(this.initializeMovie)));
+            messageDialog.Commands.Add(new UICommand(
+                "Go Back to List",
+                new UICommandInvokedHandler(this.ExitPlayer)));
+
+            // Set the command that will be invoked by default
+            messageDialog.DefaultCommandIndex = 0;
+
+            // Set the command to be invoked when escape is pressed
+            messageDialog.CancelCommandIndex = 1;
+
+            // Show the message dialog
+            await messageDialog.ShowAsync();
+        }
+        private void ExitPlayer(IUICommand command)
+        {
+            this.On_BackRequested();
         }
 
         private void Back_Click(object sender, RoutedEventArgs e)
@@ -63,8 +113,9 @@ namespace OneDriveStreamer
                 return true;
             }
             else
-            {
-                this.Frame.Navigate(typeof(MoviePlayerPage));
+            {   // one path up
+                pathComponents.RemoveAt(pathComponents.Count - 1);
+                this.Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
                 return true;
             }
         }

@@ -9,17 +9,20 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <Grid x:Name="backButtonGrid">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <Button Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" />
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid x:Name="backButtonGrid" Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" x:Name="backButton" />
+            <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="OneDrive Streamer" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" />
         </Grid>
 
-        <ScrollViewer>
+        <ScrollViewer Grid.Row="1">
             <GridView
             ItemsSource="{ x:Bind fileItems }"
             VerticalAlignment="Center"

@@ -7,11 +7,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Windows.ApplicationModel.Core;
 using Windows.Security.Credentials;
 using Windows.UI.Core;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -41,32 +44,69 @@ namespace OneDriveStreamer
             this.myClientId = config.GetClientID();
             this.ListFilesFolders("/");
             filesListControl.ItemsSource = fileItems;
-            backButtonGrid.Visibility = Visibility.Collapsed;
+            backButton.Visibility = Visibility.Collapsed;
 
             // Handling Page Back navigation behaviors
             SystemNavigationManager.GetForCurrentView().BackRequested +=
                 SystemNavigationManager_BackRequested;
         }
 
+        private async void ExitOrRetryWithMessage(string message)
+        {
+            // Create the message dialog and set its content
+            var messageDialog = new MessageDialog(message);
+
+            // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
+            messageDialog.Commands.Add(new UICommand(
+                "Try again",
+                new UICommandInvokedHandler(this.ResetListFilesFolders)));
+            messageDialog.Commands.Add(new UICommand(
+                "Close app",
+                new UICommandInvokedHandler(this.ExitApp)));
+
+            // Set the command that will be invoked by default
+            messageDialog.DefaultCommandIndex = 0;
+
+            // Set the command to be invoked when escape is pressed
+            messageDialog.CancelCommandIndex = 1;
+
+            // Show the message dialog
+            await messageDialog.ShowAsync();
+        }
+        private void ExitApp(IUICommand command)
+        {
+            CoreApplication.Exit();
+        }
+
+        private async void InitOneDrive(IUICommand command)
+        {
+            await this.InitOneDrive();
+        }
         private async Task InitOneDrive()
         {
             string[] scopes = { "onedrive.readonly", "wl.signin" };
-            // get provider
-            var msaAuthProvider = new MsaAuthenticationProvider(
-                myClientId,
-                "https://login.live.com/oauth20_desktop.srf",
-                scopes,
-                null,
-                new CredentialVault(myClientId));
-            await msaAuthProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
-            // init client
-            this.oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthProvider);
-            var refreshtoken = (((MsaAuthenticationProvider)oneDriveClient.AuthenticationProvider).CurrentAccountSession).RefreshToken;
+            try
+            {
+                // get provider
+                var msaAuthProvider = new MsaAuthenticationProvider(
+                    myClientId,
+                    "https://login.live.com/oauth20_desktop.srf",
+                    scopes,
+                    null,
+                    new CredentialVault(myClientId));
+                await msaAuthProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
+                // init client
+                this.oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthProvider);
+                var refreshtoken = (((MsaAuthenticationProvider)oneDriveClient.AuthenticationProvider).CurrentAccountSession).RefreshToken;
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e, "error");
+                this.ExitOrRetryWithMessage("Failed to authenticate with OneDrive. Error: " + e.ToString());
+            }
         }
 
-        private void SystemNavigationManager_BackRequested(
-    object sender,
-    BackRequestedEventArgs e)
+        private void SystemNavigationManager_BackRequested(object sender, BackRequestedEventArgs e)
         {
             if (!e.Handled)
             {
@@ -74,9 +114,66 @@ namespace OneDriveStreamer
             }
         }
 
+        private void ResetListFilesFolders(IUICommand command)
+        {
+            this.pathComponents.Clear();
+            this.ListFilesFolders("/");
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs eArgs)
+        {
+            if (pathComponents.Count > 0)
+            {
+                try
+                {
+                    var parameters = (VideoNavigationParameter)eArgs.Parameter;
+                    if (parameters != null)
+                    {
+                        this.pathComponents = parameters.PathComponents;
+                        this.oneDriveClient = parameters.oneDriveClient;
+                        this.ListFilesFolders();
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine(e, "warning");
+
+                }
+                // e.g. from back button, need to remove file elements, possibly
+                // this here is faster than loading the element to check, but worse UX
+                if (pathComponents[pathComponents.Count - 1].Contains("."))
+                {
+                    // one path up
+                    pathComponents.RemoveAt(pathComponents.Count - 1);
+                }
+                this.ListFilesFolders();
+            }
+        }
+
+        private void ListFilesFolders()
+        {
+            string currentPath = "/";
+            if (pathComponents.Count > 0)
+            {
+                currentPath += String.Join("/", pathComponents) + "/";
+            }
+            this.ListFilesFolders(currentPath);
+        }
 
         private async void ListFilesFolders(string path)
         {
+            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            {
+                if (path == "/")
+                {
+                    pathText.Text = "OneDrive Streamer";
+                }
+                else
+                {
+                    pathText.Text = path;
+                }
+            });
+
             if (this.oneDriveClient == null)
             {
                 await this.InitOneDrive();
@@ -95,9 +192,8 @@ namespace OneDriveStreamer
             }
             catch (Exception e)
             {
-                // TODO: show the message to the user
                 System.Diagnostics.Debug.WriteLine(e, "error");
-                return;
+                this.ExitOrRetryWithMessage("Failed to load Files from OneDrive. Error: " + e.ToString());
             }
             var list = files.ToList();
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
@@ -127,7 +223,7 @@ namespace OneDriveStreamer
 
         private void ItemClicked(Item dataitem)
         {
-            backButtonGrid.Visibility = Visibility.Visible;
+            backButton.Visibility = Visibility.Visible;
             System.Diagnostics.Debug.WriteLine("Clicked on " + dataitem.Name);
             pathComponents.Add(dataitem.Name);
             string currentPath = "/" + String.Join("/", pathComponents) + "/";
@@ -157,16 +253,15 @@ namespace OneDriveStreamer
             {
                 // one path up
                 pathComponents.RemoveAt(pathComponents.Count - 1);
-                string currentPath = "/" + String.Join("/", pathComponents) + "/";
-                this.ListFilesFolders(currentPath);
+                this.ListFilesFolders();
                 if (pathComponents.Count > 0)
                 {
-                    backButtonGrid.Visibility = Visibility.Visible;
+                    backButton.Visibility = Visibility.Visible;
 
                 }
                 else
                 {
-                    backButtonGrid.Visibility = Visibility.Collapsed;
+                    backButton.Visibility = Visibility.Collapsed;
                 }
                 return true;
             }
