@@ -10,15 +10,14 @@ namespace OneDriveStreamer.Utils
     class VideoNavigationParameter
     {
         public VideoNavigationParameter() { }
-        public VideoNavigationParameter(string url, string videoPath, OneDriveClient client)
+
+        public VideoNavigationParameter(List<string> pathComponents, OneDriveClient oneDriveClient)
         {
-            this.videoUrl = url;
-            this.videoPath = videoPath;
-            this.oneDriveClient = client;
+            PathComponents = pathComponents;
+            this.oneDriveClient = oneDriveClient;
         }
 
-        public string videoUrl { get; set; }
-        public string videoPath { get; set; }
         public OneDriveClient oneDriveClient { get; set; }
+        public List<string> PathComponents { get; }
     }
 }

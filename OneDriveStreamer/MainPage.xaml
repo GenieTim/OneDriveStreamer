@@ -8,29 +8,85 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <ScrollViewer>
-        <VariableSizedWrapGrid MaximumRowsOrColumns="3" Orientation="Vertical">
-            <ItemsControl ItemsSource="{ x:Bind fileItems }" x:Name="filesListControl">
-                <ItemsControl.ItemTemplate>
+    <Grid>
+        <Grid x:Name="backButtonGrid">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Button Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" />
+
+        </Grid>
+
+        <ScrollViewer>
+            <GridView
+            ItemsSource="{ x:Bind fileItems }"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center"
+            x:Name="filesListControl" 
+            ItemClick="filesListControl_ItemClick"
+            IsItemClickEnabled="True"
+            CanDragItems="False"
+            SelectionMode="None">
+                <GridView.ItemTemplate>
                     <DataTemplate>
-                        <Button Click="File_OnClick" Margin="5">
-                            <Grid Padding="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Image
+                        <Grid
+                x:Name="controlRoot"
+                Width="344"
+                Height="140"
+                Padding="12"
+                Background="{ThemeResource SystemControlBackgroundListLowBrush}">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="LayoutVisualStates">
+                                    <VisualState x:Name="WideLayout">
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters />
+                                    </VisualState>
+                                    <VisualState x:Name="NarrowLayout">
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="0" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="controlRoot.Width" Value="Auto" />
+                                            <Setter Target="controlRoot.Height" Value="120" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image
                             x:Name="gridImage"
                             Width="36"
                             VerticalAlignment="Top"
                             Source="{ Binding Image}"
                             Stretch="Uniform" />
-                                <TextBlock Text="{ Binding Name }" />
-                            </Grid>
-                        </Button>
+                            <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="16,6,0,0">
+                                <TextBlock
+                        x:Name="titleText"
+                        Style="{StaticResource SubtitleTextBlockStyle}"
+                        Text="{Binding Name}"
+                        Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                        TextLineBounds="TrimToCapHeight"
+                        TextWrapping="NoWrap" />
+                                <TextBlock
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                        Margin="0,4,16,0"
+                        RelativePanel.Below="titleText"
+                        Text="{Binding Size}"
+                        TextTrimming="CharacterEllipsis" />
+                            </RelativePanel>
+                        </Grid>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </VariableSizedWrapGrid>
-    </ScrollViewer>
+                </GridView.ItemTemplate>
+            </GridView>
+        </ScrollViewer>
+    </Grid>
 </Page>
