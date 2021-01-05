@@ -9,7 +9,7 @@ Stream Movies from OneDrive with this App for XBox (&amp; Windows)
 
 ## How to Use
 
-Currently, this is not a finished product and equivalently not published in any store.
+Currently, this is not a polished product (but published in the Microsoft store, [here](https://www.microsoft.com/en-us/p/onedrivestreamer/9ngfvc3zsf4k?activetab=pivot:overviewtab)).
 To run/test/contribute, you need to create a file `OneDriveStreamer/appsettings.json` with a 
 content of:
 
