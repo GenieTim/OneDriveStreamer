@@ -32,14 +32,14 @@ namespace OneDriveStreamer
             SystemNavigationManager.GetForCurrentView().BackRequested +=
                 SystemNavigationManager_BackRequested;
         }
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             var parameters = (VideoNavigationParameter)e.Parameter;
             this.oneDriveClient = parameters.oneDriveClient;
             this.pathComponents = parameters.PathComponents;
             this.initializeMovie();
         }
-        private async void initializeMovie(IUICommand c)
+        private void initializeMovie(IUICommand c)
         {
             this.initializeMovie();
         }

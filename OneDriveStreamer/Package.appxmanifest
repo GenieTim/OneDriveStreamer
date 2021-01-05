@@ -7,15 +7,15 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="341435b4-d27f-4702-a24a-cf58071c42f6"
-    Publisher="CN=Tim"
+    Name="54989BernhardWebstudio.OneDriveStreamer"
+    Publisher="CN=C54C9B41-1CE3-43AA-B3E9-72BEEDA114A3"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="341435b4-d27f-4702-a24a-cf58071c42f6" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="4a89a167-94a4-4131-8e4e-637dd44bbf5a" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>OneDriveStreamer</DisplayName>
-    <PublisherDisplayName>Tim</PublisherDisplayName>
+    <PublisherDisplayName>Bernhard Webstudio</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -37,8 +37,13 @@
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="OneDriveStreamer"
         BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png" ShortName="OneDriveStreamer"/>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="landscape"/>
+          <uap:Rotation Preference="portrait"/>
+          <uap:Rotation Preference="landscapeFlipped"/>
+          <uap:Rotation Preference="portraitFlipped"/></uap:InitialRotationPreference>
       </uap:VisualElements>
     </Application>
   </Applications>

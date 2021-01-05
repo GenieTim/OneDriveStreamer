@@ -189,6 +189,7 @@ namespace OneDriveStreamer
                 {
                     this.files = (ItemChildrenCollectionPage)await oneDriveClient.Drive.Root.ItemWithPath(path).Children.Request().GetAsync();
                 }
+                // TODO: list more upon scrolling
             }
             catch (Exception e)
             {
