@@ -47,8 +47,7 @@ namespace OneDriveStreamer
             backButton.Visibility = Visibility.Collapsed;
 
             // Handling Page Back navigation behaviors
-            SystemNavigationManager.GetForCurrentView().BackRequested +=
-                SystemNavigationManager_BackRequested;
+            SystemNavigationManager.GetForCurrentView().BackRequested += SystemNavigationManager_BackRequested;
         }
 
         private async void ExitOrRetryWithMessage(string message)
@@ -172,6 +171,9 @@ namespace OneDriveStreamer
                 {
                     pathText.Text = path;
                 }
+                fileScrollViewer.Visibility = Visibility.Collapsed;
+                progressRing.Visibility = Visibility.Visible;
+                progressRing.IsActive = true;
             });
 
             if (this.oneDriveClient == null)
@@ -206,6 +208,9 @@ namespace OneDriveStreamer
                      System.Diagnostics.Debug.WriteLine("Adding file " + i.Name);
                  }
                  this.loading = false;
+                 progressRing.IsActive = false;
+                 progressRing.Visibility = Visibility.Collapsed;
+                 fileScrollViewer.Visibility = Visibility.Visible;
              });
 
             System.Diagnostics.Debug.WriteLine("Got " + fileItems.Count() + " files");

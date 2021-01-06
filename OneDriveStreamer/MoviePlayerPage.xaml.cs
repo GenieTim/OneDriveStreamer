@@ -49,11 +49,13 @@ namespace OneDriveStreamer
             var videoPath = "/" + string.Join("/", this.pathComponents);
             try
             {
+                progress.Visibility = Visibility.Visible;
                 var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
                 var file = await builder.Request().GetAsync();
                 Stream contentStream = await builder.Content.Request().GetAsync();
                 string mimeType = MimeTypeMap.GetMimeType(file.Name);
                 mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                progress.Visibility = Visibility.Collapsed;
             }
             catch (Exception ex)
             {
