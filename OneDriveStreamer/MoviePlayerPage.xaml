@@ -2,17 +2,25 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:OneDriveStreamer"
+      xmlns:vlc="using:VLC"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <StackPanel>
-            <Viewbox x:Name="progress">
-                <ProgressBar IsIndeterminate="True" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" />
-            </Viewbox>
-            <MediaPlayerElement x:Name="mediaPlayer" AreTransportControlsEnabled="True" Stretch="Uniform" IsFullWindow="True" />
-        </StackPanel>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Viewbox x:Name="progress" Grid.Column="0" Grid.Row="0">
+            <ProgressBar IsIndeterminate="True" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" />
+        </Viewbox>
+        <vlc:MediaElement Grid.Column="0" Grid.Row="1" x:Name="mediaPlayerVlc" Stretch="Uniform" AreTransportControlsEnabled="True">
+            <vlc:MediaElement.TransportControls>
+                <vlc:MediaTransportControls AutoHide="True" CursorAutoHide="True" IsDeinterlaceModeButtonEnabled="False" IsDeinterlaceModeButtonVisible="False" />
+            </vlc:MediaElement.TransportControls>
+        </vlc:MediaElement>
+        <MediaPlayerElement Grid.Column="0" Grid.Row="1" x:Name="mediaPlayer" AreTransportControlsEnabled="True" Stretch="Uniform" Visibility="Collapsed" />
     </Grid>
 </Page>

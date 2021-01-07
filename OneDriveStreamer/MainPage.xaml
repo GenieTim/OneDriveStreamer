@@ -27,7 +27,7 @@
             <GridView ItemsSource="{ x:Bind fileItems }" VerticalAlignment="Center" HorizontalAlignment="Center" x:Name="filesListControl" ItemClick="filesListControl_ItemClick" IsItemClickEnabled="True" CanDragItems="False" SelectionMode="None">
                 <GridView.ItemTemplate>
                     <DataTemplate>
-                        <Grid x:Name="controlRoot" Width="344" Height="140" Padding="12" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
+                        <Grid x:Name="controlRoot" Width="344" Height="140" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="LayoutVisualStates">
                                     <VisualState x:Name="WideLayout">
@@ -52,18 +52,21 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Image x:Name="gridImage" Width="36" VerticalAlignment="Top" Source="{ Binding Thumbnails[0].Medium.Url }" Stretch="Uniform" />
-                            <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="16,6,0,0">
-                                <RelativePanel.Resources>
-                                    <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
-                                    <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
-                                </RelativePanel.Resources>
+                            <Grid.Resources>
+                                <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                                <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                                <conv:IconForItemConverter x:Name="IconFinder" />
+                                <conv:SymbolFinder x:Name="SymbolFinder" />
+                            </Grid.Resources>
+                            <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
+                                <Image x:Name="gridImage" Width="40" Source="{ Binding Converter={StaticResource IconFinder} }" Stretch="Uniform" />
+                                <SymbolIcon x:Name="gridSymbol" Width="40" Symbol="{ Binding Converter={StaticResource SymbolFinder}}" />
+                            </StackPanel>
+                            <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
                                 <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
                                 <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
                                 <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
-                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/>
-                                    <Run Text=", " />
-                                    <Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
                                 </TextBlock>
                             </RelativePanel>
                         </Grid>

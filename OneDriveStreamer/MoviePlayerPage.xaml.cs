@@ -37,6 +37,7 @@ namespace OneDriveStreamer
             var parameters = (VideoNavigationParameter)e.Parameter;
             this.oneDriveClient = parameters.oneDriveClient;
             this.pathComponents = parameters.PathComponents;
+            mediaPlayer.Visibility = Visibility.Collapsed;
             this.initializeMovie();
         }
         private void initializeMovie(IUICommand c)
@@ -47,20 +48,39 @@ namespace OneDriveStreamer
         private async void initializeMovie()
         {
             var videoPath = "/" + string.Join("/", this.pathComponents);
-            try
+            //try
             {
+                mediaPlayer.Visibility = Visibility.Collapsed;
+                mediaPlayerVlc.Visibility = Visibility.Visible;
                 progress.Visibility = Visibility.Visible;
                 var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
                 var file = await builder.Request().GetAsync();
-                Stream contentStream = await builder.Content.Request().GetAsync();
                 string mimeType = MimeTypeMap.GetMimeType(file.Name);
-                mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                System.Diagnostics.Debug.WriteLine("Playing item with mine type: " + mimeType);
+                // first, try with VLC
+                object downloadUrl;
+                if (file.AdditionalData.TryGetValue("@content.downloadUrl", out downloadUrl))
+                {
+                    var options = new Dictionary<string, string>();
+                    mediaPlayerVlc.Options = (IDictionary<string, object>)options;
+                    mediaPlayerVlc.Source = (string)downloadUrl;
+                }
+                // if we cannot, try with UWP MediaPlayer & Stream
+                else
+                {
+                    mediaPlayerVlc.Visibility = Visibility.Collapsed;
+                    mediaPlayer.Visibility = Visibility.Visible;
+                    // TODO: this stream can lead to out of memory exceptions.
+                    Stream contentStream = await builder.Content.Request().GetAsync();
+                    mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                }
+                // 
                 progress.Visibility = Visibility.Collapsed;
             }
-            catch (Exception ex)
-            {
-                this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
-            }
+            //catch (Exception ex)
+            //{
+            //    this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+            //}
         }
 
         private async void ExitOrRetryWithMessage(string message)

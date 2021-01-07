@@ -91,7 +91,7 @@ namespace OneDriveStreamer
                     myClientId,
                     "https://login.live.com/oauth20_desktop.srf",
                     scopes,
-                    null,
+                    new CredentialCache(),
                     new CredentialVault(myClientId));
                 await msaAuthProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
                 // init client
@@ -239,7 +239,7 @@ namespace OneDriveStreamer
                 this.ListFilesFolders(currentPath);
             }
 
-            else if (dataitem.Video != null)
+            else if (dataitem.Video != null || dataitem.Audio != null)
             {
                 Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
             }
