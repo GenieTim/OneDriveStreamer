@@ -6,9 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Windows.ApplicationModel;
 using Windows.ApplicationModel.Core;
-using Windows.Security.Credentials;
 using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
@@ -36,6 +34,12 @@ namespace OneDriveStreamer
         private ObservableCollection<Item> fileItems = new ObservableCollection<Item>();
         // The "collection" that is shown in the UI
         public ObservableCollection<string> Items = new ObservableCollection<string>();
+        private IDictionary<string, string> sortTranslator = new Dictionary<string, string>() {
+            { "Name", "name" },
+            { "Last Modification", "lastModifiedDateTime" },
+            { "Size", "size" }
+        };
+        private string currentSortBy = "name";
 
         public MainPage()
         {
@@ -43,7 +47,7 @@ namespace OneDriveStreamer
             var config = new AppConfig();
             this.myClientId = config.GetClientID();
             this.ListFilesFolders("/");
-            filesListControl.ItemsSource = fileItems;
+            fileScrollViewer.ItemsSource = fileItems;
             backButton.Visibility = Visibility.Collapsed;
 
             // Handling Page Back navigation behaviors
@@ -183,14 +187,16 @@ namespace OneDriveStreamer
 
             try
             {
+                IItemChildrenCollectionRequest request;
                 if (path == "/")
                 {
-                    this.files = (ItemChildrenCollectionPage)await oneDriveClient.Drive.Root.Children.Request().GetAsync();
+                    request = oneDriveClient.Drive.Root.Children.Request();
                 }
                 else
                 {
-                    this.files = (ItemChildrenCollectionPage)await oneDriveClient.Drive.Root.ItemWithPath(path).Children.Request().GetAsync();
+                    request = oneDriveClient.Drive.Root.ItemWithPath(path).Children.Request();
                 }
+                this.files = (ItemChildrenCollectionPage)await request.OrderBy(this.currentSortBy).Expand("thumbnails").GetAsync();
                 // TODO: list more upon scrolling
             }
             catch (Exception e)
@@ -212,8 +218,39 @@ namespace OneDriveStreamer
                  progressRing.Visibility = Visibility.Collapsed;
                  fileScrollViewer.Visibility = Visibility.Visible;
              });
-
             System.Diagnostics.Debug.WriteLine("Got " + fileItems.Count() + " files");
+            // by immediately loading all files/folders, we can easily sort them ourselfs.
+            // problem though will be, that we *might* risk memory issues.
+            // otherwise, could use request.orderby, which will limit to "name", "size" and "lastModifiedDateTime",
+            // see here: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/concepts/optional-query-parameters?view=odsp-graph-online#sorting-collections
+            this.ListFilesFoldersMore(files);
+        }
+
+        private async void ListFilesFoldersMore(ItemChildrenCollectionPage lastItems)
+        {
+            try
+            {
+                var nextPage = lastItems.NextPageRequest;
+                if (nextPage != null)
+                {
+                    ItemChildrenCollectionPage newFiles = (ItemChildrenCollectionPage)await nextPage.GetAsync();
+                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                    {
+                        foreach (Item i in newFiles)
+                        {
+                            fileItems.Add(i);
+                            System.Diagnostics.Debug.WriteLine("Adding file " + i.Name + " for more files.");
+                        }
+                    });
+
+                    System.Diagnostics.Debug.WriteLine("Got " + newFiles.Count() + " additional files");
+                    this.ListFilesFoldersMore(newFiles);
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to list additional files.", e);
+            }
         }
 
         private void filesListControl_ItemClick(object sender, ItemClickEventArgs e)
@@ -238,7 +275,6 @@ namespace OneDriveStreamer
             {
                 this.ListFilesFolders(currentPath);
             }
-
             else if (dataitem.Video != null || dataitem.Audio != null)
             {
                 Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
@@ -278,6 +314,29 @@ namespace OneDriveStreamer
         {
             On_BackRequested();
             args.Handled = true;
+        }
+
+        private void sortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var box = sender as ComboBox;
+            if (box.SelectedValue != null)
+            {
+                string probablyValue;
+                sortTranslator.TryGetValue(box.SelectedValue.ToString(), out probablyValue);
+                if (probablyValue == null)
+                {
+                    this.currentSortBy = "name";
+                }
+                else
+                {
+                    this.currentSortBy = probablyValue;
+                }
+            }
+            else
+            {
+                this.currentSortBy = "name";
+            }
+            this.ListFilesFolders();
         }
     }
 }

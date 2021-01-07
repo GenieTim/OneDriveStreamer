@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.UI.Xaml.Data;
 
 namespace OneDriveStreamer.Common
@@ -12,7 +8,8 @@ namespace OneDriveStreamer.Common
         public object Convert(object value, Type targetType, object parameter, string language)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            if (value == null) {
+            if (value == null)
+            {
                 return "";
             }
             double len = double.Parse(value.ToString());

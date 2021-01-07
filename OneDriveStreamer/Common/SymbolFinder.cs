@@ -1,11 +1,7 @@
 ﻿using Microsoft.OneDrive.Sdk;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Data;
 
 namespace OneDriveStreamer.Common
 {
@@ -18,11 +14,7 @@ namespace OneDriveStreamer.Common
                 return "";
             }
             Item item = value as Item;
-            if (item.Thumbnails == null || item.Thumbnails.Count < 1)
-            {
-                return this.getIcon(item);
-            }
-            return "";
+            return this.getIcon(item);
         }
 
         public Symbol getIcon(Item item)
@@ -41,7 +33,7 @@ namespace OneDriveStreamer.Common
             {
                 return Symbol.Video;
             }
-            else if (item.Photo != null)
+            else if (item.Photo != null || item.Image != null)
             {
                 return Symbol.Pictures;
             }

@@ -1,16 +1,16 @@
-﻿using OneDriveStreamer.Utils;
+﻿using Microsoft.OneDrive.Sdk;
+using MimeTypes;
+using OneDriveStreamer.Utils;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using Windows.Media.Core;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Navigation;
-using MimeTypes;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Input;
 using Windows.UI.Core;
-using System;
 using Windows.UI.Popups;
-using Microsoft.OneDrive.Sdk;
-using System.Collections.Generic;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -48,7 +48,7 @@ namespace OneDriveStreamer
         private async void initializeMovie()
         {
             var videoPath = "/" + string.Join("/", this.pathComponents);
-            //try
+            try
             {
                 mediaPlayer.Visibility = Visibility.Collapsed;
                 mediaPlayerVlc.Visibility = Visibility.Visible;
@@ -61,8 +61,8 @@ namespace OneDriveStreamer
                 object downloadUrl;
                 if (file.AdditionalData.TryGetValue("@content.downloadUrl", out downloadUrl))
                 {
-                    var options = new Dictionary<string, string>();
-                    mediaPlayerVlc.Options = (IDictionary<string, object>)options;
+                    var options = new Dictionary<string, object>();
+                    mediaPlayerVlc.Options = options;
                     mediaPlayerVlc.Source = (string)downloadUrl;
                 }
                 // if we cannot, try with UWP MediaPlayer & Stream
@@ -74,13 +74,12 @@ namespace OneDriveStreamer
                     Stream contentStream = await builder.Content.Request().GetAsync();
                     mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
                 }
-                // 
                 progress.Visibility = Visibility.Collapsed;
             }
-            //catch (Exception ex)
-            //{
-            //    this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
-            //}
+            catch (Exception ex)
+            {
+                this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+            }
         }
 
         private async void ExitOrRetryWithMessage(string message)

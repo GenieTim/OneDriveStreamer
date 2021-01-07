@@ -6,7 +6,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,63 +15,73 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" x:Name="backButton" />
             <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="OneDrive Streamer" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" />
+            <ComboBox Grid.Column="2" Header="" SelectedIndex="0" PlaceholderText="Pick a Sort" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
+                <x:String>Name</x:String>
+                <x:String>Size</x:String>
+                <x:String>Last Modification</x:String>
+            </ComboBox>
         </Grid>
 
         <ProgressRing x:Name="progressRing" IsActive="True" Grid.Row="1" Grid.Column="0" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center"></ProgressRing>
 
-        <ScrollViewer Grid.Row="1" x:Name="fileScrollViewer">
-            <GridView ItemsSource="{ x:Bind fileItems }" VerticalAlignment="Center" HorizontalAlignment="Center" x:Name="filesListControl" ItemClick="filesListControl_ItemClick" IsItemClickEnabled="True" CanDragItems="False" SelectionMode="None">
-                <GridView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid x:Name="controlRoot" Width="344" Height="140" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="LayoutVisualStates">
-                                    <VisualState x:Name="WideLayout">
-                                        <VisualState.StateTriggers>
-                                            <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
-                                        </VisualState.StateTriggers>
-                                        <VisualState.Setters />
-                                    </VisualState>
-                                    <VisualState x:Name="NarrowLayout">
-                                        <VisualState.StateTriggers>
-                                            <AdaptiveTrigger MinWindowWidth="0" />
-                                        </VisualState.StateTriggers>
-                                        <VisualState.Setters>
-                                            <Setter Target="controlRoot.Width" Value="Auto" />
-                                            <Setter Target="controlRoot.Height" Value="120" />
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
+        <GridView
+                  x:Name="fileScrollViewer" Grid.Row="1" ItemsSource="{ x:Bind fileItems }" VerticalAlignment="Center" HorizontalAlignment="Center" ItemClick="filesListControl_ItemClick" IsItemClickEnabled="True" CanDragItems="False" SelectionMode="None" Padding="10" HorizontalContentAlignment="Stretch"
+            ScrollViewer.VerticalScrollBarVisibility="Visible"
+              ScrollViewer.VerticalScrollMode="Enabled"
+              ScrollViewer.HorizontalScrollMode="Disabled"
+                  >
+            <GridView.ItemTemplate>
+                <DataTemplate>
+                    <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="LayoutVisualStates">
+                                <VisualState x:Name="WideLayout">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters />
+                                </VisualState>
+                                <VisualState x:Name="NarrowLayout">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="0" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Target="controlRoot.Width" Value="Auto" />
+                                        <Setter Target="controlRoot.Height" Value="120" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
 
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.Resources>
-                                <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
-                                <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
-                                <conv:IconForItemConverter x:Name="IconFinder" />
-                                <conv:SymbolFinder x:Name="SymbolFinder" />
-                            </Grid.Resources>
-                            <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
-                                <Image x:Name="gridImage" Width="40" Source="{ Binding Converter={StaticResource IconFinder} }" Stretch="Uniform" />
-                                <SymbolIcon x:Name="gridSymbol" Width="40" Symbol="{ Binding Converter={StaticResource SymbolFinder}}" />
-                            </StackPanel>
-                            <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
-                                <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
-                                <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.Resources>
+                            <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                            <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                            <conv:IconForItemConverter x:Name="IconFinder" />
+                            <conv:SymbolFinder x:Name="SymbolFinder" />
+                            <conv:EmojiIconVisibilityConverter x:Name="SymbolHider" />
+                        </Grid.Resources>
+                        <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
+                            <Image x:Name="gridImage" Width="50" Source="{ Binding Converter={StaticResource IconFinder} }" Stretch="Uniform" />
+                            <SymbolIcon x:Name="gridSymbol" Width="50" Symbol="{ Binding Converter={StaticResource SymbolFinder}}" Visibility="{ Binding Converter={StaticResource SymbolHider}}" />
+                        </StackPanel>
+                        <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
+                            <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
+                            <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
                                     <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
-                                </TextBlock>
-                            </RelativePanel>
-                        </Grid>
-                    </DataTemplate>
-                </GridView.ItemTemplate>
-            </GridView>
-        </ScrollViewer>
+                            </TextBlock>
+                        </RelativePanel>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
     </Grid>
 </Page>
