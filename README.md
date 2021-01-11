@@ -1,5 +1,13 @@
-# OneDriveStreamer
+# CloudStreamer
+
 Stream Movies from OneDrive with this App for XBox (&amp; Windows)
+
+- [CloudStreamer](#cloudstreamer)
+  - [Why?](#why)
+  - [How to Use](#how-to-use)
+  - [How to build yourself](#how-to-build-yourself)
+  - [Current State](#current-state)
+  - [Disclaimer](#disclaimer)
 
 ## Why?
 
@@ -36,3 +44,12 @@ The following NuGet Packages are required:
 
 To be updated.
 At the time of writing, it runs, but UX & UI are not ideal.
+
+## Disclaimer
+
+OneDrive is a registered trademark by Microsoft. 
+Xbox is a registered trademark of Microsoft. 
+This product is not affiliated with or endorsed by Microsoft.
+All trademarks are properties of their respective owners and are used here for information purposes only.
+
+CloudStreamer is formerly known as OneDriveStreamer.

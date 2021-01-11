@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
+using Windows.Foundation;
 using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 
@@ -31,9 +34,8 @@ namespace OneDriveStreamer
         private bool loading = false;
         private OneDriveClient oneDriveClient;
         private ItemChildrenCollectionPage files;
-        private ObservableCollection<Item> fileItems = new ObservableCollection<Item>();
         // The "collection" that is shown in the UI
-        public ObservableCollection<string> Items = new ObservableCollection<string>();
+        private IncrementalLoadingCollection<Item> fileItems;
         private IDictionary<string, string> sortTranslator = new Dictionary<string, string>() {
             { "Name", "name" },
             { "Last Modification", "lastModifiedDateTime" },
@@ -169,7 +171,7 @@ namespace OneDriveStreamer
             {
                 if (path == "/")
                 {
-                    pathText.Text = "OneDrive Streamer";
+                    pathText.Text = "CloudStreamer";
                 }
                 else
                 {
@@ -183,6 +185,12 @@ namespace OneDriveStreamer
             if (this.oneDriveClient == null)
             {
                 await this.InitOneDrive();
+            }
+
+            if (this.oneDriveClient == null)
+            {
+                this.ExitOrRetryWithMessage("Failed to authenticate with OneDrive.");
+                return;
             }
 
             try
@@ -207,50 +215,14 @@ namespace OneDriveStreamer
             var list = files.ToList();
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
              {
-                 fileItems.Clear();
-                 foreach (Item i in list)
-                 {
-                     fileItems.Add(i);
-                     System.Diagnostics.Debug.WriteLine("Adding file " + i.Name);
-                 }
+                 fileItems = new IncrementalLoadingCollection<Item>(this, files);
+                 fileScrollViewer.ItemsSource = fileItems;
                  this.loading = false;
                  progressRing.IsActive = false;
                  progressRing.Visibility = Visibility.Collapsed;
                  fileScrollViewer.Visibility = Visibility.Visible;
              });
             System.Diagnostics.Debug.WriteLine("Got " + fileItems.Count() + " files");
-            // by immediately loading all files/folders, we can easily sort them ourselfs.
-            // problem though will be, that we *might* risk memory issues.
-            // otherwise, could use request.orderby, which will limit to "name", "size" and "lastModifiedDateTime",
-            // see here: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/concepts/optional-query-parameters?view=odsp-graph-online#sorting-collections
-            this.ListFilesFoldersMore(files);
-        }
-
-        private async void ListFilesFoldersMore(ItemChildrenCollectionPage lastItems)
-        {
-            try
-            {
-                var nextPage = lastItems.NextPageRequest;
-                if (nextPage != null)
-                {
-                    ItemChildrenCollectionPage newFiles = (ItemChildrenCollectionPage)await nextPage.GetAsync();
-                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
-                    {
-                        foreach (Item i in newFiles)
-                        {
-                            fileItems.Add(i);
-                            System.Diagnostics.Debug.WriteLine("Adding file " + i.Name + " for more files.");
-                        }
-                    });
-
-                    System.Diagnostics.Debug.WriteLine("Got " + newFiles.Count() + " additional files");
-                    this.ListFilesFoldersMore(newFiles);
-                }
-            }
-            catch (Exception e)
-            {
-                System.Diagnostics.Debug.WriteLine("Failed to list additional files.", e);
-            }
         }
 
         private void filesListControl_ItemClick(object sender, ItemClickEventArgs e)
@@ -318,6 +290,11 @@ namespace OneDriveStreamer
 
         private void sortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (this.oneDriveClient == null)
+            {
+                // don't handle change on first app load
+                return;
+            }
             var box = sender as ComboBox;
             if (box.SelectedValue != null)
             {
@@ -337,6 +314,57 @@ namespace OneDriveStreamer
                 this.currentSortBy = "name";
             }
             this.ListFilesFolders();
+        }
+
+        public class IncrementalLoadingCollection<T> : ObservableCollection<Item>, ISupportIncrementalLoading
+        {
+            private MainPage parent;
+            private ItemChildrenCollectionPage lastFiles;
+
+            public IncrementalLoadingCollection(MainPage parent, ItemChildrenCollectionPage files)
+            {
+                foreach (Item i in files)
+                {
+                    Add(i);
+                }
+                this.lastFiles = files;
+                this.parent = parent;
+            }
+
+            public IAsyncOperation<LoadMoreItemsResult> LoadMoreItemsAsync(uint count)
+            {
+                return AsyncInfo.Run(async cancelToken =>
+                {
+                    try
+                    {
+                        var nextPage = lastFiles.NextPageRequest;
+                        if (nextPage != null)
+                        {
+                            ItemChildrenCollectionPage newFiles = (ItemChildrenCollectionPage)await nextPage.GetAsync();
+                            foreach (Item i in newFiles)
+                            {
+                                Add(i);
+                                System.Diagnostics.Debug.WriteLine("Adding file " + i.Name + " for more files.");
+                            }
+                            // TODO: currently, there is no break - it just keeps fetching new items
+                            System.Diagnostics.Debug.WriteLine("Got " + newFiles.Count() + " additional files");
+                            lastFiles = newFiles;
+                            return new LoadMoreItemsResult { Count = Convert.ToUInt32(newFiles.Count()) };
+                        }
+                        else
+                        {
+                            return new LoadMoreItemsResult { Count = 0 };
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Failed to list additional files.", e);
+                        return new LoadMoreItemsResult { Count = 0 };
+                    }
+                });
+            }
+
+            bool ISupportIncrementalLoading.HasMoreItems => lastFiles == null || lastFiles.NextPageRequest != null;
         }
     }
 }

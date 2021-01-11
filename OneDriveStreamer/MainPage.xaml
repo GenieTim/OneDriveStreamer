@@ -33,6 +33,8 @@
             ScrollViewer.VerticalScrollBarVisibility="Visible"
               ScrollViewer.VerticalScrollMode="Enabled"
               ScrollViewer.HorizontalScrollMode="Disabled"
+            IncrementalLoadingTrigger="Edge"
+            IncrementalLoadingThreshold="3"
                   >
             <GridView.ItemTemplate>
                 <DataTemplate>
