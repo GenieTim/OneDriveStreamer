@@ -18,9 +18,9 @@ namespace OneDriveStreamer
         /// </summary>
         public App()
         {
-            this.InitializeComponent();
-            this.RequiresPointerMode = Windows.UI.Xaml.ApplicationRequiresPointerMode.WhenRequested;
-            this.Suspending += OnSuspending;
+            InitializeComponent();
+            RequiresPointerMode = Windows.UI.Xaml.ApplicationRequiresPointerMode.WhenRequested;
+            Suspending += OnSuspending;
         }
 
         /// <summary>

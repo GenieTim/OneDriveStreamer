@@ -19,7 +19,7 @@ namespace OneDriveStreamer.Common
             }
             if (item.Thumbnails.Count > 0)
             {
-                return this.convertStringToImageSource(item.Thumbnails[0].Medium.Url);
+                return convertStringToImageSource(item.Thumbnails[0].Medium.Url);
             }
             return "";
         }

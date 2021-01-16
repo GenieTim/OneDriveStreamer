@@ -31,15 +31,6 @@ Click it and the movie will be played.
 
 ## How to Build Yourself
 
-To run/test/contribute, you need to create a file `OneDriveStreamer/appsettings.json` with a 
-content of:
-
-```json
-{
-  "clientId": "some-string-you-need-to-get-yourself"
-}
-```
-
 The following NuGet Packages are required:
 
 -  Microsoft.Extensions.Configuration.Json, 
@@ -49,7 +40,6 @@ The following NuGet Packages are required:
 -  Microsoft.OneDriveSDK.Authentication, 
 -  MimeTypeMapOfficial, 
 -  System.Collections
--  Vlc.MediaElement
 
 ## Contributions
 

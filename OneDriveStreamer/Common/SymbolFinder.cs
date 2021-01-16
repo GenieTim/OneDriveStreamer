@@ -14,7 +14,7 @@ namespace OneDriveStreamer.Common
                 return "";
             }
             Item item = value as Item;
-            return this.getIcon(item);
+            return getIcon(item);
         }
 
         public Symbol getIcon(Item item)

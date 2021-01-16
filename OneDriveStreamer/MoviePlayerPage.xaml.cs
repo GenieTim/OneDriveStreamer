@@ -5,80 +5,175 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Windows.Media.Core;
+using Windows.Media.Playback;
+using Windows.System.Display;
 using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
+using Microsoft.Services.Store.Engagement;
 
 namespace OneDriveStreamer
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// The one page where the movie is played
     /// </summary>
     public sealed partial class MoviePlayerPage : Page
     {
         private List<string> pathComponents = new List<string>();
         private OneDriveClient oneDriveClient;
+        private DisplayRequest displayRequest;
 
         public MoviePlayerPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
 
             // Handling Page Back navigation behaviors
             SystemNavigationManager.GetForCurrentView().BackRequested +=
                 SystemNavigationManager_BackRequested;
+            //
+            KeepDisplayOn();
+            // start function to update source after one hour (lifetime of OneDrive download link)
+            var startTimeSpan = TimeSpan.Zero;
+            var periodTimeSpan = TimeSpan.FromMinutes(5);
+
+            var timer = new System.Threading.Timer((e) =>
+            {
+                updateMovieSourceIfNecessary();
+            }, null, startTimeSpan, periodTimeSpan);
+
+            StoreServicesCustomEventLogger logger = StoreServicesCustomEventLogger.GetDefault();
+            logger.Log("moviePlayerPage");
         }
+
+        private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
+        {
+            if (sender.PlaybackState.Equals(MediaPlaybackState.Paused))
+            {
+                AllowDisplayOff();
+            }
+            else
+            {
+                KeepDisplayOn();
+            }
+        }
+
+        private void MediaPlayer_MediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        {
+            AllowDisplayOff();
+        }
+
+        private void MediaPlayer_MediaEnded(MediaPlayer sender, object args)
+        {
+            AllowDisplayOff();
+        }
+
+        private void KeepDisplayOn()
+        {
+            if (displayRequest == null)
+            {
+                displayRequest = new DisplayRequest();
+            }
+            // request active display
+            try
+            {
+                displayRequest.RequestActive();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Error requesting active display: ", e);
+            }
+        }
+        private void AllowDisplayOff()
+        {
+            try
+            {
+                displayRequest.RequestRelease();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Error requesting active display release: ", e);
+            }
+        }
+
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             var parameters = (VideoNavigationParameter)e.Parameter;
-            this.oneDriveClient = parameters.oneDriveClient;
-            this.pathComponents = parameters.PathComponents;
-            mediaPlayer.Visibility = Visibility.Collapsed;
-            this.initializeMovie();
+            oneDriveClient = parameters.oneDriveClient;
+            pathComponents = parameters.PathComponents;
+            setVideoSourceKeepingPlaytime(true);
         }
         private void initializeMovie(IUICommand c)
         {
-            this.initializeMovie();
+            setVideoSourceKeepingPlaytime(false);
         }
 
-        private async void initializeMovie()
+        private async void updateMovieSourceIfNecessary()
         {
-            var videoPath = "/" + string.Join("/", this.pathComponents);
+            if (oneDriveClient != null)
+            {
+                OnlineIdAuthenticationProvider authenticationProvider = (OnlineIdAuthenticationProvider)oneDriveClient.AuthenticationProvider;
+                if (authenticationProvider.CurrentAccountSession.ExpiresOnUtc.CompareTo(DateTimeOffset.UtcNow.AddMinutes(5)) < 0)
+                {
+                    // it expires within 5 min -> reload
+                    await authenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
+                    oneDriveClient.AuthenticationProvider = authenticationProvider;
+                    setVideoSourceKeepingPlaytime(false);
+                }
+            }
+        }
+
+        private async void setVideoSourceKeepingPlaytime(bool newMovie)
+        {
+            var videoPath = "/" + string.Join("/", pathComponents);
             try
             {
-                mediaPlayer.Visibility = Visibility.Collapsed;
-                mediaPlayerVlc.Visibility = Visibility.Visible;
                 progress.Visibility = Visibility.Visible;
+                TimeSpan currentPlaytime = new TimeSpan(0);
+                if (!newMovie)
+                {
+                    try
+                    {
+                        currentPlaytime = mediaPlayer.MediaPlayer.PlaybackSession.Position;
+                    }
+                    catch (Exception e)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Error fetching current playtime: ", e);
+                    }
+                }
                 var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
                 var file = await builder.Request().GetAsync();
                 string mimeType = MimeTypeMap.GetMimeType(file.Name);
                 System.Diagnostics.Debug.WriteLine("Playing item with mine type: " + mimeType);
-                // first, try with VLC
                 object downloadUrl;
                 if (file.AdditionalData.TryGetValue("@content.downloadUrl", out downloadUrl))
                 {
                     var options = new Dictionary<string, object>();
-                    mediaPlayerVlc.Options = options;
-                    mediaPlayerVlc.Source = (string)downloadUrl;
+                    mediaPlayer.Source = MediaSource.CreateFromUri(new Uri((string)downloadUrl));
                 }
-                // if we cannot, try with UWP MediaPlayer & Stream
                 else
                 {
-                    mediaPlayerVlc.Visibility = Visibility.Collapsed;
-                    mediaPlayer.Visibility = Visibility.Visible;
                     // TODO: this stream can lead to out of memory exceptions.
+                    // might want to try also the VLC movie element again?
                     Stream contentStream = await builder.Content.Request().GetAsync();
                     mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
                 }
                 progress.Visibility = Visibility.Collapsed;
+                mediaPlayer.MediaPlayer.PlaybackSession.Position = currentPlaytime;
+
+                // setup listeners
+                if (!newMovie)
+                {
+                    mediaPlayer.MediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+                    mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
+                    mediaPlayer.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChanged;
+                }
             }
             catch (Exception ex)
             {
-                this.ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+                ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
             }
         }
 
@@ -90,10 +185,10 @@ namespace OneDriveStreamer
             // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
             messageDialog.Commands.Add(new UICommand(
                 "Try again",
-                new UICommandInvokedHandler(this.initializeMovie)));
+                new UICommandInvokedHandler(initializeMovie)));
             messageDialog.Commands.Add(new UICommand(
                 "Go Back to List",
-                new UICommandInvokedHandler(this.ExitPlayer)));
+                new UICommandInvokedHandler(ExitPlayer)));
 
             // Set the command that will be invoked by default
             messageDialog.DefaultCommandIndex = 0;
@@ -106,7 +201,7 @@ namespace OneDriveStreamer
         }
         private void ExitPlayer(IUICommand command)
         {
-            this.On_BackRequested();
+            On_BackRequested();
         }
 
         private void Back_Click(object sender, RoutedEventArgs e)
@@ -120,7 +215,7 @@ namespace OneDriveStreamer
         {
             if (!e.Handled)
             {
-                e.Handled = this.On_BackRequested();
+                e.Handled = On_BackRequested();
             }
         }
 
@@ -128,15 +223,16 @@ namespace OneDriveStreamer
         private bool On_BackRequested()
         {
             mediaPlayer.Source = null;
-            if (this.Frame.CanGoBack)
+            AllowDisplayOff();
+            if (Frame.CanGoBack)
             {
-                this.Frame.GoBack();
+                Frame.GoBack();
                 return true;
             }
             else
             {   // one path up
                 pathComponents.RemoveAt(pathComponents.Count - 1);
-                this.Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
+                Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
                 return true;
             }
         }
