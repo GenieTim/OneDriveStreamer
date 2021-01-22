@@ -5,7 +5,7 @@ Stream Movies from OneDrive with this App for XBox (&amp; Windows)
 - [CloudStreamer](#cloudstreamer)
   - [Why?](#why)
   - [How to Use](#how-to-use)
-  - [How it Works](#how-it-works)
+  - [What Works](#what-works)
   - [How to Build Yourself](#how-to-build-yourself)
   - [Contributions](#contributions)
   - [Disclaimer](#disclaimer)
@@ -18,12 +18,11 @@ Stream Movies from OneDrive with this App for XBox (&amp; Windows)
 
 ## How to Use
 
-Currently, this is not a perfectly polished product
-It runs, and you can install it from the Microsoft store, [here](https://www.microsoft.com/en-us/p/onedrivestreamer/9ngfvc3zsf4k?activetab=pivot:overviewtab&cid=gihub).
+You can install it from the Microsoft store, [here](https://www.microsoft.com/en-us/p/onedrivestreamer/9ngfvc3zsf4k?activetab=pivot:overviewtab&cid=gihub).
 
 [![English badge](https://developer.microsoft.com/store/badges/images/English_get-it-from-MS.png)](//www.microsoft.com/store/apps/9NGFVC3ZSF4K?cid=storebadge_github&ocid=badge)
 
-## How it Works
+## What Works
 
 First, after installing the App, you log in with your Microsoft/OneDrive account.
 Then, you get a list of your files. Feel free to click through until you find the movie you want to watch.
