@@ -25,6 +25,7 @@ namespace OneDriveStreamer
         private List<string> pathComponents = new List<string>();
         private OneDriveClient oneDriveClient;
         private DisplayRequest displayRequest;
+        private DateTimeOffset dlLinkAge;
 
         public MoviePlayerPage()
         {
@@ -46,6 +47,10 @@ namespace OneDriveStreamer
 
             StoreServicesCustomEventLogger logger = StoreServicesCustomEventLogger.GetDefault();
             logger.Log("moviePlayerPage");
+
+            // 
+            var coreWindow = Window.Current.CoreWindow;
+            coreWindow.CharacterReceived += CoreWindow_CharacterReceived;
         }
 
         private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
@@ -57,6 +62,10 @@ namespace OneDriveStreamer
             else
             {
                 KeepDisplayOn();
+            }
+            if (sender.PlaybackState.Equals(MediaPlaybackState.Buffering))
+            {
+                updateMovieSourceIfNecessary();
             }
         }
 
@@ -110,24 +119,19 @@ namespace OneDriveStreamer
             setVideoSourceKeepingPlaytime(false);
         }
 
-        private async void updateMovieSourceIfNecessary()
+        private void updateMovieSourceIfNecessary()
         {
-            if (oneDriveClient != null)
+            if (dlLinkAge != null && DateTimeOffset.UtcNow.CompareTo(dlLinkAge.AddMinutes(55)) < 0)
             {
-                OnlineIdAuthenticationProvider authenticationProvider = (OnlineIdAuthenticationProvider)oneDriveClient.AuthenticationProvider;
-                if (authenticationProvider.CurrentAccountSession.ExpiresOnUtc.CompareTo(DateTimeOffset.UtcNow.AddMinutes(5)) < 0)
-                {
-                    // it expires within 5 min -> reload
-                    await authenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
-                    oneDriveClient.AuthenticationProvider = authenticationProvider;
-                    setVideoSourceKeepingPlaytime(false);
-                }
+                // it expires within 5 min -> reload
+                setVideoSourceKeepingPlaytime(false);
             }
         }
 
         private async void setVideoSourceKeepingPlaytime(bool newMovie)
         {
             var videoPath = "/" + string.Join("/", pathComponents);
+            dlLinkAge = DateTimeOffset.UtcNow;
             try
             {
                 progress.Visibility = Visibility.Visible;
@@ -146,7 +150,7 @@ namespace OneDriveStreamer
                 var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
                 var file = await builder.Request().GetAsync();
                 string mimeType = MimeTypeMap.GetMimeType(file.Name);
-                System.Diagnostics.Debug.WriteLine("Playing item with mine type: " + mimeType);
+                System.Diagnostics.Debug.WriteLine("Playing item with mime type: " + mimeType);
                 object downloadUrl;
                 if (file.AdditionalData.TryGetValue("@content.downloadUrl", out downloadUrl))
                 {
@@ -198,6 +202,24 @@ namespace OneDriveStreamer
 
             // Show the message dialog
             await messageDialog.ShowAsync();
+        }
+
+        private void CoreWindow_CharacterReceived(CoreWindow sender,
+                                                 CharacterReceivedEventArgs args)
+        {
+            // KeyCode 27 = Escape key, KeyCode 8 = Backspace
+            if (args.KeyCode != 27 && args.KeyCode != 8)
+            {
+//                System.Diagnostics.Debug.WriteLine("Pressed: " + args.KeyCode);
+                return;
+            }
+
+            // Detatch from key inputs event
+            var coreWindow = Window.Current.CoreWindow;
+            coreWindow.CharacterReceived -= CoreWindow_CharacterReceived;
+
+            //Go back, close window, confirm, etc.
+            On_BackRequested();
         }
         private void ExitPlayer(IUICommand command)
         {

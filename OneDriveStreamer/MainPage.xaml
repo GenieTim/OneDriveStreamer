@@ -6,6 +6,220 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
+    <Page.Resources>
+        <!-- Default template -->
+        <DataTemplate x:Key="DefaultTemplate">
+            <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="LayoutVisualStates">
+                        <VisualState x:Name="WideLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters />
+                        </VisualState>
+                        <VisualState x:Name="NarrowLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="controlRoot.Width" Value="Auto" />
+                                <Setter Target="controlRoot.Height" Value="120" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                    <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                    <conv:IconForItemConverter x:Name="IconFinder" />
+                    <conv:SymbolFinder x:Name="SymbolFinder" />
+                    <conv:EmojiIconVisibilityConverter x:Name="SymbolHider" />
+                </Grid.Resources>
+                <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
+                    <Image x:Name="gridImage" Width="50" Source="{ Binding Converter={StaticResource IconFinder} }" Stretch="Uniform" />
+                    <SymbolIcon x:Name="gridSymbol" Width="50" Symbol="{ Binding Converter={StaticResource SymbolFinder}}" Visibility="{ Binding Converter={StaticResource SymbolHider}}" />
+                </StackPanel>
+                <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
+                    <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
+                    <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                    </TextBlock>
+                </RelativePanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Folder template -->
+        <DataTemplate x:Key="FolderTemplate">
+            <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="LayoutVisualStates">
+                        <VisualState x:Name="WideLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters />
+                        </VisualState>
+                        <VisualState x:Name="NarrowLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="controlRoot.Width" Value="Auto" />
+                                <Setter Target="controlRoot.Height" Value="120" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                    <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                </Grid.Resources>
+                <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
+                    <SymbolIcon x:Name="gridSymbol" Width="50" Symbol="Folder" />
+                </StackPanel>
+                <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
+                    <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
+                    <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" /><Run Text=", " /><Run Text="{Binding Folder.ChildCount}" /><Run Text=" Items" />
+                    </TextBlock>
+                    <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                    </TextBlock>
+                </RelativePanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Image Template -->
+        <DataTemplate x:Key="ImageTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                    <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                    <conv:IconForItemConverter x:Name="IconFinder" />
+                    <conv:SymbolFinder x:Name="SymbolFinder" />
+                    <conv:EmojiIconVisibilityConverter x:Name="SymbolHider" />
+                </Grid.Resources>
+
+                <!--<ParallaxView Source="{Binding ElementName=fileScrollViewer}" VerticalShift="100" Opacity="0.5" Grid.Column="0" Grid.Row="0">-->
+                <Image Source="{ Binding Converter={StaticResource IconFinder}}" Stretch="UniformToFill" Opacity="0.5" Grid.Column="0" Grid.Row="0" />
+                <!--</ParallaxView>-->
+                <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}" Grid.Column="0" Grid.Row="0">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="LayoutVisualStates">
+                            <VisualState x:Name="WideLayout">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters />
+                            </VisualState>
+                            <VisualState x:Name="NarrowLayout">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="0" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="controlRoot.Width" Value="Auto" />
+                                    <Setter Target="controlRoot.Height" Value="120" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <RelativePanel Grid.Column="0" Grid.ColumnSpan="2" Margin="6,6,0,0">
+                        <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
+                        <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis"  Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText">
+                        <Run Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" />
+                        </TextBlock>
+                        <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                        </TextBlock>
+                    </RelativePanel>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Movie Template -->
+        <DataTemplate x:Key="MovieTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
+                    <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
+                    <conv:MovieDurationConverter x:Name="DurationConverter" />
+                    <conv:IconForItemConverter x:Name="IconFinder" />
+                    <conv:SymbolFinder x:Name="SymbolFinder" />
+                    <conv:EmojiIconVisibilityConverter x:Name="SymbolHider" />
+                </Grid.Resources>
+
+                <!--<ParallaxView Source="{Binding ElementName=fileScrollViewer}" VerticalShift="100" Opacity="0.5" Grid.Column="0" Grid.Row="0">-->
+                <Image Source="{ Binding Converter={StaticResource IconFinder}}" Stretch="UniformToFill" Opacity="0.5" Grid.Column="0" Grid.Row="0" />
+                <!--</ParallaxView>-->
+                <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}" Grid.Column="0" Grid.Row="0">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="LayoutVisualStates">
+                            <VisualState x:Name="WideLayout">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters />
+                            </VisualState>
+                            <VisualState x:Name="NarrowLayout">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="0" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="controlRoot.Width" Value="Auto" />
+                                    <Setter Target="controlRoot.Height" Value="120" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <RelativePanel Grid.Column="0" Grid.ColumnSpan="2" Margin="6,6,0,0">
+                        <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
+                        <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis"  Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText">
+                        <Run Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" /><Run Text=", " /><Run Text="{Binding Video.Duration, Converter={StaticResource DurationConverter}}" />
+                        </TextBlock>
+                        <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                        </TextBlock>
+                    </RelativePanel>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <!-- converter -->
+        <conv:OneDriveItemDataTemplateSelector x:Key="SdkItemDataTemplateSelector" 
+                                               DefaultTemplate="{StaticResource DefaultTemplate}" 
+                                               FolderTemplate="{StaticResource FolderTemplate}"
+                                               ImageTemplate="{StaticResource ImageTemplate}"
+                                               MovieTemplate="{StaticResource MovieTemplate}">
+        </conv:OneDriveItemDataTemplateSelector>
+    </Page.Resources>
+
+    <!-- Actual content -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,13 +230,18 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" x:Name="backButton" />
-            <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="OneDrive Streamer" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" />
-            <ComboBox Grid.Column="2" Header="" SelectedIndex="0" PlaceholderText="Pick a Sort" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
+            <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="OneDrive Streamer" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <ComboBox Grid.Column="2" Header="" SelectedIndex="0" PlaceholderText="Pick what to sort by" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
                 <x:String>Name</x:String>
                 <x:String>Size</x:String>
                 <x:String>Last Modification</x:String>
+            </ComboBox>
+            <ComboBox Grid.Column="3" Header="" SelectedIndex="0" PlaceholderText="Pick a sort-direction" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortDirComboBox" SelectionChanged="sortDirComboBox_SelectionChanged">
+                <x:String>Ascending</x:String>
+                <x:String>Descending</x:String>
             </ComboBox>
         </Grid>
 
@@ -35,55 +254,8 @@
               ScrollViewer.HorizontalScrollMode="Disabled"
             IncrementalLoadingTrigger="Edge"
             IncrementalLoadingThreshold="3"
+            ItemTemplateSelector="{StaticResource SdkItemDataTemplateSelector}"
                   >
-            <GridView.ItemTemplate>
-                <DataTemplate>
-                    <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="LayoutVisualStates">
-                                <VisualState x:Name="WideLayout">
-                                    <VisualState.StateTriggers>
-                                        <AdaptiveTrigger MinWindowWidth="{StaticResource Breakpoint640Plus}" />
-                                    </VisualState.StateTriggers>
-                                    <VisualState.Setters />
-                                </VisualState>
-                                <VisualState x:Name="NarrowLayout">
-                                    <VisualState.StateTriggers>
-                                        <AdaptiveTrigger MinWindowWidth="0" />
-                                    </VisualState.StateTriggers>
-                                    <VisualState.Setters>
-                                        <Setter Target="controlRoot.Width" Value="Auto" />
-                                        <Setter Target="controlRoot.Height" Value="120" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.Resources>
-                            <conv:DateFormatConverter x:Name="DateToStringFormatConverter" />
-                            <conv:IntegerFileSizeStringConverter x:Name="FileSizeConverter" />
-                            <conv:IconForItemConverter x:Name="IconFinder" />
-                            <conv:SymbolFinder x:Name="SymbolFinder" />
-                            <conv:EmojiIconVisibilityConverter x:Name="SymbolHider" />
-                        </Grid.Resources>
-                        <StackPanel Margin="0 5 0 0" VerticalAlignment="Top">
-                            <Image x:Name="gridImage" Width="50" Source="{ Binding Converter={StaticResource IconFinder} }" Stretch="Uniform" />
-                            <SymbolIcon x:Name="gridSymbol" Width="50" Symbol="{ Binding Converter={StaticResource SymbolFinder}}" Visibility="{ Binding Converter={StaticResource SymbolHider}}" />
-                        </StackPanel>
-                        <RelativePanel Grid.Column="1" Grid.ColumnSpan="2" Margin="12,6,0,0">
-                            <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
-                            <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
-                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
-                            </TextBlock>
-                        </RelativePanel>
-                    </Grid>
-                </DataTemplate>
-            </GridView.ItemTemplate>
         </GridView>
     </Grid>
 </Page>

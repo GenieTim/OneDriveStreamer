@@ -44,6 +44,8 @@ namespace OneDriveStreamer
         };
         private string currentSortBy = "name";
 
+        public string currentSortByDir = "asc";
+
         public MainPage()
         {
             InitializeComponent();
@@ -220,7 +222,10 @@ namespace OneDriveStreamer
                 {
                     request = oneDriveClient.Drive.Root.ItemWithPath(path).Children.Request();
                 }
-                files = (ItemChildrenCollectionPage)await request.OrderBy(currentSortBy).Expand("thumbnails").GetAsync();
+                IItemChildrenCollectionRequest sortedRequest = request.OrderBy(currentSortBy + " " + currentSortByDir);
+                sortedRequest = sortedRequest.Expand("thumbnails");
+                //sortedRequest.
+                files = (ItemChildrenCollectionPage)await sortedRequest.GetAsync();
                 // TODO: list more upon scrolling
             }
             catch (Exception e)
@@ -328,6 +333,24 @@ namespace OneDriveStreamer
             else
             {
                 currentSortBy = "name";
+            }
+            ListFilesFolders();
+        }
+        private void sortDirComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (oneDriveClient == null)
+            {
+                // don't handle change on first app load
+                return;
+            }
+            var box = sender as ComboBox;
+            if (box.SelectedValue != null)
+            {
+                currentSortByDir = box.SelectedIndex == 0 ? "asc" : "desc";
+            }
+            else
+            {
+                currentSortByDir = "name";
             }
             ListFilesFolders();
         }

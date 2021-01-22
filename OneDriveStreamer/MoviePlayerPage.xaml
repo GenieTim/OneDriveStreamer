@@ -15,6 +15,6 @@
         <Viewbox x:Name="progress" Grid.Column="0" Grid.Row="0">
             <ProgressBar IsIndeterminate="True" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" />
         </Viewbox>
-        <MediaPlayerElement Grid.Column="0" Grid.Row="1" x:Name="mediaPlayer" AreTransportControlsEnabled="True" Stretch="Uniform" />
+        <MediaPlayerElement AutoPlay="True" Grid.Column="0" Grid.Row="1" x:Name="mediaPlayer" AreTransportControlsEnabled="True" Stretch="Uniform" />
     </Grid>
 </Page>
