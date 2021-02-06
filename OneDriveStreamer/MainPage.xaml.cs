@@ -1,5 +1,4 @@
 ﻿using Microsoft.OneDrive.Sdk;
-using Microsoft.OneDrive.Sdk.Authentication;
 using Microsoft.Services.Store.Engagement;
 using OneDriveStreamer.Utils;
 using System;
@@ -9,6 +8,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
+using Windows.ApplicationModel.Resources;
 using Windows.Foundation;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -37,21 +37,48 @@ namespace OneDriveStreamer
         private ItemChildrenCollectionPage files;
         // The "collection" that is shown in the UI
         private IncrementalLoadingCollection<Item> fileItems;
-        private IDictionary<string, string> sortTranslator = new Dictionary<string, string>() {
-            { "Name", "name" },
-            { "Last Modification", "lastModifiedDateTime" },
-            { "Size", "size" }
-        };
+        private string[] sortOrders = { "name", "lastModifiedDateTime", "size" };
         private string currentSortBy = "name";
 
         public string currentSortByDir = "asc";
+        private ResourceLoader l18nLoader;
 
         public MainPage()
         {
             InitializeComponent();
-            ListFilesFolders("/");
-            fileScrollViewer.ItemsSource = fileItems;
             backButton.Visibility = Visibility.Collapsed;
+            try
+            {
+                ListFilesFolders("/");
+            }
+            catch (Exception e)
+            {
+                ExitOrRetryWithMessage("Failed to list files and folders: " + e.Message);
+            }
+            fileScrollViewer.ItemsSource = fileItems;
+
+            try
+            {
+                // add localized options
+                l18nLoader = ResourceLoader.GetForCurrentView();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e, "error");
+
+            }
+            if (l18nLoader != null)
+            {
+                // ...  to sort by
+                sortComboBox.Items.Add(l18nLoader.GetString("Sort/Name"));
+                sortComboBox.Items.Add(l18nLoader.GetString("Sort/Size"));
+                sortComboBox.Items.Add(l18nLoader.GetString("Sort/LastModified"));
+                sortComboBox.SelectedIndex = 0;
+                // ... to sort direction
+                sortDirComboBox.Items.Add(l18nLoader.GetString("Sort/Ascending"));
+                sortDirComboBox.Items.Add(l18nLoader.GetString("Sort/Descending"));
+                sortDirComboBox.SelectedIndex = 0;
+            }
 
             // Handling Page Back navigation behaviors
             SystemNavigationManager.GetForCurrentView().BackRequested += SystemNavigationManager_BackRequested;
@@ -67,10 +94,10 @@ namespace OneDriveStreamer
 
             // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
             messageDialog.Commands.Add(new UICommand(
-                "Try again",
+               l18nLoader.GetString("Error/TryAgain"),
                 new UICommandInvokedHandler(ResetListFilesFolders)));
             messageDialog.Commands.Add(new UICommand(
-                "Close app",
+               l18nLoader.GetString("Error/CloseApp"),
                 new UICommandInvokedHandler(ExitApp)));
 
             // Set the command that will be invoked by default
@@ -101,7 +128,6 @@ namespace OneDriveStreamer
                 await authenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
                 // init client
                 oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", authenticationProvider);
-                var refreshtoken = (((MsaAuthenticationProvider)oneDriveClient.AuthenticationProvider).CurrentAccountSession).RefreshToken;
             }
             catch (Exception e)
             {
@@ -123,7 +149,7 @@ namespace OneDriveStreamer
                 return;
             }
 
-            if (authenticationProvider.CurrentAccountSession.IsExpiring)
+            if (authenticationProvider != null && authenticationProvider.CurrentAccountSession.IsExpiring)
             {
                 await authenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync();
                 oneDriveClient.AuthenticationProvider = authenticationProvider;
@@ -146,23 +172,14 @@ namespace OneDriveStreamer
 
         protected override void OnNavigatedTo(NavigationEventArgs eArgs)
         {
-            if (pathComponents.Count > 0)
+            var parameters = eArgs.Parameter as VideoNavigationParameter;
+            if (parameters != null)
             {
-                try
-                {
-                    var parameters = (VideoNavigationParameter)eArgs.Parameter;
-                    if (parameters != null)
-                    {
-                        pathComponents = parameters.PathComponents;
-                        oneDriveClient = parameters.oneDriveClient;
-                        ListFilesFolders();
-                    }
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine(e, "warning");
-
-                }
+                oneDriveClient = parameters.oneDriveClient;
+                pathComponents = parameters.PathComponents;
+            }
+            else if (pathComponents.Count > 0)
+            {
                 // e.g. from back button, need to remove file elements, possibly
                 // this here is faster than loading the element to check, but worse UX
                 if (pathComponents[pathComponents.Count - 1].Contains("."))
@@ -170,8 +187,8 @@ namespace OneDriveStreamer
                     // one path up
                     pathComponents.RemoveAt(pathComponents.Count - 1);
                 }
-                ListFilesFolders();
             }
+            ListFilesFolders();
         }
 
         private void ListFilesFolders()
@@ -186,7 +203,7 @@ namespace OneDriveStreamer
 
         private async void ListFilesFolders(string path)
         {
-            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 // update the title path
                 if (path == "/")
@@ -272,7 +289,11 @@ namespace OneDriveStreamer
             {
                 Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
             }
-            // TODO: do something else!
+            else
+            {
+                // TODO: open in external?
+                pathComponents.RemoveAt(pathComponents.Count - 1);
+            }
         }
 
         private void Back_Click(object sender, RoutedEventArgs e)
@@ -319,15 +340,10 @@ namespace OneDriveStreamer
             var box = sender as ComboBox;
             if (box.SelectedValue != null)
             {
-                string probablyValue;
-                sortTranslator.TryGetValue(box.SelectedValue.ToString(), out probablyValue);
-                if (probablyValue == null)
+                currentSortBy = sortOrders[box.SelectedIndex];
+                if (currentSortBy == null)
                 {
                     currentSortBy = "name";
-                }
-                else
-                {
-                    currentSortBy = probablyValue;
                 }
             }
             else

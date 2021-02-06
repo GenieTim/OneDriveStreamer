@@ -4,7 +4,9 @@
     xmlns:local="using:OneDriveStreamer"
     xmlns:conv="using:OneDriveStreamer.Common" 
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" 
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    NavigationCacheMode="Required">
 
     <Page.Resources>
         <!-- Default template -->
@@ -49,7 +51,7 @@
                     <TextBlock x:Name="titleText" Style="{StaticResource SubtitleTextBlockStyle}" Text="{Binding Name}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextLineBounds="TrimToCapHeight" TextWrapping="NoWrap" />
                     <TextBlock x:Name="sizeText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="titleText" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="createdText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="0,4,16,0" RelativePanel.Below="sizeText" TextTrimming="CharacterEllipsis">
-                                    <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
+                           <Run Text="{Binding CreatedBy.User.DisplayName}"/><Run Text=", " /><Run Text="{Binding CreatedDateTime, Converter={StaticResource DateToStringFormatConverter}}" />
                     </TextBlock>
                 </RelativePanel>
             </Grid>
@@ -171,7 +173,7 @@
                 </Grid.Resources>
 
                 <!--<ParallaxView Source="{Binding ElementName=fileScrollViewer}" VerticalShift="100" Opacity="0.5" Grid.Column="0" Grid.Row="0">-->
-                <Image Source="{ Binding Converter={StaticResource IconFinder}}" Stretch="UniformToFill" Opacity="0.5" Grid.Column="0" Grid.Row="0" />
+                <Image Source="{ Binding Converter={StaticResource IconFinder}}" Stretch="UniformToFill" Opacity="0.25" Grid.Column="0" Grid.Row="0" />
                 <!--</ParallaxView>-->
                 <Grid x:Name="controlRoot" Width="370" Height="120" Padding="10" Background="{ThemeResource SystemControlBackgroundListLowBrush}" Grid.Column="0" Grid.Row="0">
                     <VisualStateManager.VisualStateGroups>
@@ -233,15 +235,12 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" x:Name="backButton" />
-            <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="OneDrive Streamer" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <ComboBox Grid.Column="2" Header="" SelectedIndex="0" PlaceholderText="Pick what to sort by" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
-                <x:String>Name</x:String>
-                <x:String>Size</x:String>
-                <x:String>Last Modification</x:String>
+            <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="Your OneDrive" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <ComboBox Grid.Column="2" Header="" x:Uid="SortComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
+                <!-- Options will be injected by C# -->
             </ComboBox>
-            <ComboBox Grid.Column="3" Header="" SelectedIndex="0" PlaceholderText="Pick a sort-direction" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortDirComboBox" SelectionChanged="sortDirComboBox_SelectionChanged">
-                <x:String>Ascending</x:String>
-                <x:String>Descending</x:String>
+            <ComboBox Grid.Column="3" Header="" x:Uid="SortDirComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortDirComboBox" SelectionChanged="sortDirComboBox_SelectionChanged">
+                <!-- Options will be injected by C# -->
             </ComboBox>
         </Grid>
 
@@ -258,4 +257,5 @@
                   >
         </GridView>
     </Grid>
+
 </Page>

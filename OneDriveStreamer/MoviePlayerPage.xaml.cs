@@ -1,9 +1,11 @@
 ﻿using Microsoft.OneDrive.Sdk;
+using Microsoft.Services.Store.Engagement;
 using MimeTypes;
 using OneDriveStreamer.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Windows.ApplicationModel.Resources;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.System.Display;
@@ -13,7 +15,6 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
-using Microsoft.Services.Store.Engagement;
 
 namespace OneDriveStreamer
 {
@@ -26,6 +27,7 @@ namespace OneDriveStreamer
         private OneDriveClient oneDriveClient;
         private DisplayRequest displayRequest;
         private DateTimeOffset dlLinkAge;
+        private ResourceLoader loader;
 
         public MoviePlayerPage()
         {
@@ -51,6 +53,8 @@ namespace OneDriveStreamer
             // 
             var coreWindow = Window.Current.CoreWindow;
             coreWindow.CharacterReceived += CoreWindow_CharacterReceived;
+            //
+            loader = ResourceLoader.GetForCurrentView();
         }
 
         private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
@@ -188,10 +192,10 @@ namespace OneDriveStreamer
 
             // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
             messageDialog.Commands.Add(new UICommand(
-                "Try again",
+                 loader.GetString("Error/TryAgain"),
                 new UICommandInvokedHandler(initializeMovie)));
             messageDialog.Commands.Add(new UICommand(
-                "Go Back to List",
+                loader.GetString("Error/BackToMain"),
                 new UICommandInvokedHandler(ExitPlayer)));
 
             // Set the command that will be invoked by default
@@ -208,9 +212,9 @@ namespace OneDriveStreamer
                                                  CharacterReceivedEventArgs args)
         {
             // KeyCode 27 = Escape key, KeyCode 8 = Backspace
-            if (args.KeyCode != 27 && args.KeyCode != 8)
+            if ((args.KeyCode != 27 || mediaPlayer.IsFullWindow) && args.KeyCode != 8)
             {
-//                System.Diagnostics.Debug.WriteLine("Pressed: " + args.KeyCode);
+                // System.Diagnostics.Debug.WriteLine("Pressed: " + args.KeyCode);
                 return;
             }
 
@@ -252,9 +256,13 @@ namespace OneDriveStreamer
                 return true;
             }
             else
-            {   // one path up
-                pathComponents.RemoveAt(pathComponents.Count - 1);
-                Frame.Navigate(typeof(MoviePlayerPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
+            {
+                // one path up
+                if (pathComponents.Count > 0)
+                {
+                    pathComponents.RemoveAt(pathComponents.Count - 1);
+                }
+                Frame.Navigate(typeof(MainPage), new VideoNavigationParameter(pathComponents, oneDriveClient));
                 return true;
             }
         }

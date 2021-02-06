@@ -1,13 +1,14 @@
-﻿using System.Reflection;
-using System.Runtime.InteropServices;
-
+﻿
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
+using System.Reflection;
+using System.Runtime.InteropServices;
+
 [assembly: AssemblyTitle("OneDriveStreamer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Stream Movies from OneDrive with this App for XBox (& Windows)")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Bernhard Webstudio")]
 [assembly: AssemblyProduct("OneDriveStreamer")]
 [assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
