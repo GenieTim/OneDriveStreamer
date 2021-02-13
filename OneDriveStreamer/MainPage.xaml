@@ -236,10 +236,10 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Style="{StaticResource NavigationBackButtonNormalStyle}" Click="Back_Click" x:Name="backButton" />
             <TextBlock Grid.Column="1" x:Name="pathText" Padding="7" Text="Your OneDrive" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <ComboBox Grid.Column="2" Header="" x:Uid="SortComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="sortComboBox_SelectionChanged">
+            <ComboBox Grid.Column="2" Header="" x:Uid="SortComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortComboBox" SelectionChanged="SortComboBox_SelectionChanged">
                 <!-- Options will be injected by C# -->
             </ComboBox>
-            <ComboBox Grid.Column="3" Header="" x:Uid="SortDirComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortDirComboBox" SelectionChanged="sortDirComboBox_SelectionChanged">
+            <ComboBox Grid.Column="3" Header="" x:Uid="SortDirComboBox" VerticalAlignment="Center" HorizontalAlignment="Right" x:Name="sortDirComboBox" SelectionChanged="SortDirComboBox_SelectionChanged">
                 <!-- Options will be injected by C# -->
             </ComboBox>
         </Grid>
@@ -247,7 +247,7 @@
         <ProgressRing x:Name="progressRing" IsActive="True" Grid.Row="1" Grid.Column="0" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center"></ProgressRing>
 
         <GridView
-                  x:Name="fileScrollViewer" Grid.Row="1" ItemsSource="{ x:Bind fileItems }" VerticalAlignment="Center" HorizontalAlignment="Center" ItemClick="filesListControl_ItemClick" IsItemClickEnabled="True" CanDragItems="False" SelectionMode="None" Padding="10" HorizontalContentAlignment="Stretch"
+                  x:Name="fileScrollViewer" Grid.Row="1" ItemsSource="{ x:Bind fileItems }" VerticalAlignment="Center" HorizontalAlignment="Center" ItemClick="FilesListControl_ItemClick" IsItemClickEnabled="True" CanDragItems="False" SelectionMode="None" Padding="10" HorizontalContentAlignment="Stretch"
             ScrollViewer.VerticalScrollBarVisibility="Visible"
               ScrollViewer.VerticalScrollMode="Enabled"
               ScrollViewer.HorizontalScrollMode="Disabled"

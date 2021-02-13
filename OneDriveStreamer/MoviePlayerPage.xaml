@@ -6,15 +6,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Viewbox x:Name="progress" Grid.Column="0" Grid.Row="0">
-            <ProgressBar IsIndeterminate="True" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" />
-        </Viewbox>
         <MediaPlayerElement AutoPlay="True" Grid.Column="0" Grid.Row="1" x:Name="mediaPlayer" AreTransportControlsEnabled="True" Stretch="Uniform" />
     </Grid>
 </Page>

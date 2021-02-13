@@ -17,7 +17,7 @@ namespace OneDriveStreamer.Common
             while (len >= 1024 && order < sizes.Length - 1)
             {
                 order++;
-                len = len / 1024;
+                len /= 1024;
             }
 
             // Adjust the format string to your preferences. For example "{0:0.#}{1}" would

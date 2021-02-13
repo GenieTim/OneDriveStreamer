@@ -123,6 +123,9 @@
   <data name="Error.CloseApp" xml:space="preserve">
     <value>Close App</value>
   </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>An Error Ocurred</value>
+  </data>
   <data name="Error.TryAgain" xml:space="preserve">
     <value>Try Again</value>
   </data>

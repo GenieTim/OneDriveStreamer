@@ -1,10 +1,14 @@
-﻿using Microsoft.OneDrive.Sdk;
+﻿using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
+using Microsoft.OneDrive.Sdk;
 using Microsoft.Services.Store.Engagement;
 using MimeTypes;
 using OneDriveStreamer.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.Resources;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -27,25 +31,19 @@ namespace OneDriveStreamer
         private OneDriveClient oneDriveClient;
         private DisplayRequest displayRequest;
         private DateTimeOffset dlLinkAge;
-        private ResourceLoader loader;
+        private readonly ResourceLoader loader;
+        private DateTimeOffset lastRetry;
 
         public MoviePlayerPage()
         {
             InitializeComponent();
+            dlLinkAge = DateTimeOffset.UtcNow;
 
             // Handling Page Back navigation behaviors
             SystemNavigationManager.GetForCurrentView().BackRequested +=
                 SystemNavigationManager_BackRequested;
             //
             KeepDisplayOn();
-            // start function to update source after one hour (lifetime of OneDrive download link)
-            var startTimeSpan = TimeSpan.Zero;
-            var periodTimeSpan = TimeSpan.FromMinutes(5);
-
-            var timer = new System.Threading.Timer((e) =>
-            {
-                updateMovieSourceIfNecessary();
-            }, null, startTimeSpan, periodTimeSpan);
 
             StoreServicesCustomEventLogger logger = StoreServicesCustomEventLogger.GetDefault();
             logger.Log("moviePlayerPage");
@@ -55,9 +53,39 @@ namespace OneDriveStreamer
             coreWindow.CharacterReceived += CoreWindow_CharacterReceived;
             //
             loader = ResourceLoader.GetForCurrentView();
+
+            //
+            mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed1;
         }
 
-        private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
+        private async void MediaPlayer_MediaFailed1(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        {
+            System.Diagnostics.Debug.WriteLine("MediaPlayer MediaFailed");
+            // only retry if last retry was not within last 5 minutes
+            if (DateTimeOffset.UtcNow.CompareTo(lastRetry.AddMinutes(5)) < 0)
+            {
+                // reload
+                _ = SetVideoSourceKeepingPlaytime(false);
+            }
+            else
+            {
+                try
+                {
+                    await ExitOrRetryWithMessage("MediaPlayer failed. Error message: " + args.ErrorMessage);
+                }
+                catch (Exception e)
+                {
+                    Crashes.TrackError(e, new Dictionary<string, string>
+                    {
+                        { "On", "Call Error Dialog" },
+                        { "Where", "MoviePlayerPage.xaml:MediaPlayer_MediaFailed1"},
+                        { "DueTo", args.ErrorMessage}
+                    });
+                }
+            }
+        }
+
+        private async void PlaybackSession_PlaybackStateChangedAsync(MediaPlaybackSession sender, object args)
         {
             if (sender.PlaybackState.Equals(MediaPlaybackState.Paused))
             {
@@ -69,7 +97,7 @@ namespace OneDriveStreamer
             }
             if (sender.PlaybackState.Equals(MediaPlaybackState.Buffering))
             {
-                updateMovieSourceIfNecessary();
+                await UpdateMovieSourceIfNecessary();
             }
         }
 
@@ -96,7 +124,7 @@ namespace OneDriveStreamer
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine("Error requesting active display: ", e);
+                System.Diagnostics.Debug.WriteLine("Error requesting active display: ", e.Message);
             }
         }
         private void AllowDisplayOff()
@@ -107,7 +135,7 @@ namespace OneDriveStreamer
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine("Error requesting active display release: ", e);
+                System.Diagnostics.Debug.WriteLine("Error requesting active display release: ", e.Message);
             }
         }
 
@@ -116,29 +144,29 @@ namespace OneDriveStreamer
             var parameters = (VideoNavigationParameter)e.Parameter;
             oneDriveClient = parameters.oneDriveClient;
             pathComponents = parameters.PathComponents;
-            setVideoSourceKeepingPlaytime(true);
+            _ = SetVideoSourceKeepingPlaytime(true);
         }
-        private void initializeMovie(IUICommand c)
+        private void InitializeMovie(IUICommand c)
         {
-            setVideoSourceKeepingPlaytime(false);
+            _ = SetVideoSourceKeepingPlaytime(false);
         }
 
-        private void updateMovieSourceIfNecessary()
+        private async Task UpdateMovieSourceIfNecessary()
         {
-            if (dlLinkAge != null && DateTimeOffset.UtcNow.CompareTo(dlLinkAge.AddMinutes(55)) < 0)
+            if (DateTimeOffset.UtcNow.CompareTo(dlLinkAge.AddMinutes(55)) < 0)
             {
                 // it expires within 5 min -> reload
-                setVideoSourceKeepingPlaytime(false);
+                await SetVideoSourceKeepingPlaytime(false);
             }
         }
 
-        private async void setVideoSourceKeepingPlaytime(bool newMovie)
+        private async Task SetVideoSourceKeepingPlaytime(bool newMovie)
         {
-            var videoPath = "/" + string.Join("/", pathComponents);
+            var videoPath = $"/{string.Join("/", pathComponents)}";
             dlLinkAge = DateTimeOffset.UtcNow;
+            lastRetry = DateTimeOffset.UtcNow;
             try
             {
-                progress.Visibility = Visibility.Visible;
                 TimeSpan currentPlaytime = new TimeSpan(0);
                 if (!newMovie)
                 {
@@ -148,64 +176,114 @@ namespace OneDriveStreamer
                     }
                     catch (Exception e)
                     {
-                        System.Diagnostics.Debug.WriteLine("Error fetching current playtime: ", e);
+                        System.Diagnostics.Debug.WriteLine("Error fetching current playtime: ", e.Message);
                     }
                 }
                 var builder = oneDriveClient.Drive.Root.ItemWithPath(videoPath);
                 var file = await builder.Request().GetAsync();
                 string mimeType = MimeTypeMap.GetMimeType(file.Name);
                 System.Diagnostics.Debug.WriteLine("Playing item with mime type: " + mimeType);
-                object downloadUrl;
-                if (file.AdditionalData.TryGetValue("@content.downloadUrl", out downloadUrl))
+                try
                 {
-                    var options = new Dictionary<string, object>();
-                    mediaPlayer.Source = MediaSource.CreateFromUri(new Uri((string)downloadUrl));
+                    Analytics.TrackEvent("VideoUri Set", new Dictionary<string, string> {
+                     { "MimeType", mimeType }
+                    });
+                }
+                catch (Exception e)
+                {
+                    // let's not do anything more about this.
+                    System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+                }
+
+                if (file.AdditionalData.TryGetValue("@content.downloadUrl", out object downloadUrl))
+                {
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () =>
+                        {
+                            mediaPlayer.Source = MediaSource.CreateFromUri(new Uri((string)downloadUrl));
+                        });
                 }
                 else
                 {
-                    // TODO: this stream can lead to out of memory exceptions.
+                    // NOTE: this stream can lead to out of memory exceptions.
                     // might want to try also the VLC movie element again?
                     Stream contentStream = await builder.Content.Request().GetAsync();
-                    mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () =>
+                        {
+                            mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                        });
                 }
-                progress.Visibility = Visibility.Collapsed;
-                mediaPlayer.MediaPlayer.PlaybackSession.Position = currentPlaytime;
 
-                // setup listeners
-                if (!newMovie)
-                {
-                    mediaPlayer.MediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
-                    mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
-                    mediaPlayer.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChanged;
-                }
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                       () =>
+                       {
+                           mediaPlayer.MediaPlayer.PlaybackSession.Position = currentPlaytime;
+
+                           // setup listeners
+                           if (!newMovie)
+                           {
+                               mediaPlayer.MediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+                               mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
+                               mediaPlayer.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChangedAsync;
+                           }
+                       });
             }
             catch (Exception ex)
             {
-                ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+                try
+                {
+                    await ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+                }
+                catch (Exception e)
+                {
+                    Crashes.TrackError(e, new Dictionary<string, string>
+                    {
+                        { "On", "Call Error Dialog" },
+                        { "Where", "MoviePlayerPage.xaml:SetVideoSourceKeepingPlaytime"},
+                        { "DueTo", ex.Message}
+                    });
+                }
             }
         }
 
-        private async void ExitOrRetryWithMessage(string message)
+        private async Task ExitOrRetryWithMessage(string message)
         {
-            // Create the message dialog and set its content
-            var messageDialog = new MessageDialog(message);
+            try
+            {
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    async () =>
+                    {
+                        // Create the message dialog and set its content
+                        var messageDialog = new MessageDialog(message);
 
-            // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
-            messageDialog.Commands.Add(new UICommand(
-                 loader.GetString("Error/TryAgain"),
-                new UICommandInvokedHandler(initializeMovie)));
-            messageDialog.Commands.Add(new UICommand(
-                loader.GetString("Error/BackToMain"),
-                new UICommandInvokedHandler(ExitPlayer)));
+                        // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
+                        messageDialog.Commands.Add(new UICommand(
+                             loader.GetString("Error/TryAgain"),
+                            new UICommandInvokedHandler(InitializeMovie)));
+                        messageDialog.Commands.Add(new UICommand(
+                            loader.GetString("Error/BackToMain"),
+                            new UICommandInvokedHandler(ExitPlayer)));
 
-            // Set the command that will be invoked by default
-            messageDialog.DefaultCommandIndex = 0;
+                        // Set the command that will be invoked by default
+                        messageDialog.DefaultCommandIndex = 0;
 
-            // Set the command to be invoked when escape is pressed
-            messageDialog.CancelCommandIndex = 1;
+                        // Set the command to be invoked when escape is pressed
+                        messageDialog.CancelCommandIndex = 1;
 
-            // Show the message dialog
-            await messageDialog.ShowAsync();
+                        // Show the message dialog
+                        await messageDialog.ShowAsync();
+                    }
+                );
+            }
+            catch (Exception e)
+            {
+                Crashes.TrackError(e, new Dictionary<string, string>
+                    {
+                        { "On", "Show Message Dialog" },
+                        { "Where", "MoviePlayerPage.xaml:ExitOrRetryWithMessage"}
+                    });
+            }
         }
 
         private void CoreWindow_CharacterReceived(CoreWindow sender,
@@ -214,7 +292,6 @@ namespace OneDriveStreamer
             // KeyCode 27 = Escape key, KeyCode 8 = Backspace
             if ((args.KeyCode != 27 || mediaPlayer.IsFullWindow) && args.KeyCode != 8)
             {
-                // System.Diagnostics.Debug.WriteLine("Pressed: " + args.KeyCode);
                 return;
             }
 
@@ -235,9 +312,7 @@ namespace OneDriveStreamer
             On_BackRequested();
         }
 
-        private void SystemNavigationManager_BackRequested(
-    object sender,
-    BackRequestedEventArgs e)
+        private void SystemNavigationManager_BackRequested(object sender, BackRequestedEventArgs e)
         {
             if (!e.Handled)
             {

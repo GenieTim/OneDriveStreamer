@@ -18,8 +18,7 @@ namespace OneDriveStreamer.Common
 
         protected override DataTemplate SelectTemplateCore(object item)
         {
-            var sdkItem = item as Item;
-            if (sdkItem != null)
+            if (item is Item sdkItem)
             {
                 if (sdkItem.Folder != null)
                 {
@@ -36,7 +35,6 @@ namespace OneDriveStreamer.Common
             }
             // default
             return DefaultTemplate;
-            // return base.SelectTemplateCore(item);
         }
 
         protected override DataTemplate SelectTemplateCore(object item, DependencyObject container)
