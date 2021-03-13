@@ -93,6 +93,17 @@ namespace OneDriveStreamer
                 // let's not do anything more about this.
                 System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
             }
+
+            //
+            try
+            {
+                Analytics.TrackEvent("MainPage");
+            }
+            catch (Exception e)
+            {
+                // let's not do anything more about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
         }
 
         private async Task ExitOrRetryWithMessage(string message)
@@ -172,7 +183,18 @@ namespace OneDriveStreamer
 
         private void ExitApp(IUICommand command)
         {
-            CoreApplication.Exit();
+
+            //
+            try
+            {
+                Analytics.TrackEvent("Exiting Application");
+            }
+            catch (Exception e)
+            {
+                // let's not do anything more about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
+            Application.Current.Exit();
         }
 
         private async Task InitOneDrive()
@@ -188,21 +210,17 @@ namespace OneDriveStreamer
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine(e, "error");
-                try
-                {
-                    await ExitOrRetryWithMessage("Failed to authenticate with OneDrive. Error: " + e.ToString());
-                }
-                catch (Exception ex)
-                {
-                    Crashes.TrackError(ex, new Dictionary<string, string>
+                Analytics.TrackEvent("Exception when initializing OneDrive", new Dictionary<string, string>
                     {
-                        { "On", "Call Error Dialog" },
-                        { "Where", "MainPage.xaml:InitOneDrive"},
-                        { "DueTo", e.Message}
+                        { "Error", e.Message },
+                        { "InnerError", e.InnerException != null ? e.InnerException.Message : "" },
+                        { "Where", "MainPage.xaml:InitOneDrive"}
                     });
-                }
+                authenticationProvider = null;
+                oneDriveClient = null;
+                throw;
             }
+
         }
 
         private async Task UpdateOrInitOneDriveAuthIfNecessary()
@@ -305,23 +323,32 @@ namespace OneDriveStreamer
             });
 
             // handle login
-            await UpdateOrInitOneDriveAuthIfNecessary();
-
-            if (oneDriveClient == null)
+            try
             {
+                await UpdateOrInitOneDriveAuthIfNecessary();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e, "error");
                 try
                 {
-                    await ExitOrRetryWithMessage("Failed to authenticate with OneDrive.");
+                    await ExitOrRetryWithMessage("Failed to authenticate with OneDrive. Error: " + e.ToString());
                 }
                 catch (Exception ex)
                 {
                     Crashes.TrackError(ex, new Dictionary<string, string>
                     {
                         { "On", "Call Error Dialog" },
-                        { "Where", "MainPage.xaml:ListFilesFolders"},
-                        { "DueTo", "oneDriveClient null"}
+                        { "Where", "MainPage.xaml:InitOneDrive"},
+                        { "DueTo", e.Message}
                     });
                 }
+                return;
+            }
+
+
+            if (oneDriveClient == null)
+            {
                 return;
             }
 

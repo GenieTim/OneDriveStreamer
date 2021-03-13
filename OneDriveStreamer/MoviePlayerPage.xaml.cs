@@ -55,23 +55,41 @@ namespace OneDriveStreamer
             loader = ResourceLoader.GetForCurrentView();
 
             //
-            mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed1;
+            mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
+            mediaPlayer.MediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+
+            //
+            try
+            {
+                Analytics.TrackEvent("MoviePlayerPage");
+            }
+            catch (Exception e)
+            {
+                // let's not do anything more about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
         }
 
-        private async void MediaPlayer_MediaFailed1(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        private async void MediaPlayer_MediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
         {
             System.Diagnostics.Debug.WriteLine("MediaPlayer MediaFailed");
-            // only retry if last retry was not within last 5 minutes
-            if (DateTimeOffset.UtcNow.CompareTo(lastRetry.AddMinutes(5)) < 0)
+            // only retry if last retry was not within last 2 minutes
+            if (DateTimeOffset.UtcNow.CompareTo(lastRetry.AddMinutes(2)) < 0)
             {
                 // reload
-                _ = SetVideoSourceKeepingPlaytime(false);
+                await SetVideoSourceKeepingPlaytime(false);
             }
             else
             {
+                Crashes.TrackError(new Exception(args.ErrorMessage, args.ExtendedErrorCode), new Dictionary<string, string>
+                    {
+                        { "LastRetry", lastRetry.ToString() },
+                        { "Now", DateTimeOffset.UtcNow.ToString() },
+                        { "Where", "MoviePlayerPage.xaml:MediaPlayer_MediaFailed1"}
+                    });
                 try
                 {
-                    await ExitOrRetryWithMessage("MediaPlayer failed. Error message: " + args.ErrorMessage);
+                    await ExitOrRetryWithMessage("MediaPlayer failed (" + args.Error.ToString() + "). Error message: " + args.ErrorMessage);
                 }
                 catch (Exception e)
                 {
@@ -95,15 +113,12 @@ namespace OneDriveStreamer
             {
                 KeepDisplayOn();
             }
-            if (sender.PlaybackState.Equals(MediaPlaybackState.Buffering))
-            {
-                await UpdateMovieSourceIfNecessary();
-            }
-        }
 
-        private void MediaPlayer_MediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
-        {
-            AllowDisplayOff();
+            // Problem: if we do this, the playback springs back after changing manually the playback position
+            //if (sender.PlaybackState.Equals(MediaPlaybackState.Buffering))
+            //{
+            //    await UpdateMovieSourceIfNecessary();
+            //}
         }
 
         private void MediaPlayer_MediaEnded(MediaPlayer sender, object args)
@@ -151,15 +166,6 @@ namespace OneDriveStreamer
             _ = SetVideoSourceKeepingPlaytime(false);
         }
 
-        private async Task UpdateMovieSourceIfNecessary()
-        {
-            if (DateTimeOffset.UtcNow.CompareTo(dlLinkAge.AddMinutes(55)) < 0)
-            {
-                // it expires within 5 min -> reload
-                await SetVideoSourceKeepingPlaytime(false);
-            }
-        }
-
         private async Task SetVideoSourceKeepingPlaytime(bool newMovie)
         {
             var videoPath = $"/{string.Join("/", pathComponents)}";
@@ -172,7 +178,10 @@ namespace OneDriveStreamer
                 {
                     try
                     {
-                        currentPlaytime = mediaPlayer.MediaPlayer.PlaybackSession.Position;
+                        await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                        {
+                            currentPlaytime = mediaPlayer.MediaPlayer.PlaybackSession.Position;
+                        });
                     }
                     catch (Exception e)
                     {
@@ -208,32 +217,35 @@ namespace OneDriveStreamer
                     // NOTE: this stream can lead to out of memory exceptions.
                     // might want to try also the VLC movie element again?
                     Stream contentStream = await builder.Content.Request().GetAsync();
-                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                        () =>
-                        {
-                            mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
-                        });
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                    {
+                        mediaPlayer.Source = MediaSource.CreateFromStream(contentStream.AsRandomAccessStream(), mimeType);
+                    });
                 }
 
-                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                       () =>
-                       {
-                           mediaPlayer.MediaPlayer.PlaybackSession.Position = currentPlaytime;
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    mediaPlayer.MediaPlayer.PlaybackSession.Position = currentPlaytime;
 
-                           // setup listeners
-                           if (!newMovie)
-                           {
-                               mediaPlayer.MediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
-                               mediaPlayer.MediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
-                               mediaPlayer.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChangedAsync;
-                           }
-                       });
+                    // setup listeners
+                    if (newMovie)
+                    {
+                        mediaPlayer.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChangedAsync;
+                    }
+                });
             }
             catch (Exception ex)
             {
+                Crashes.TrackError(ex, new Dictionary<string, string>
+                    {
+                        { "On", "Setting Video Source" },
+                        { "Where", "MoviePlayerPage.xaml:SetVideoSourceKeepingPlaytime"},
+                        { "DueTo", ex.Message},
+                        { "IsNewMovie", newMovie.ToString()}
+                    });
                 try
                 {
-                    await ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString());
+                    await ExitOrRetryWithMessage("Failed to load movie. Error: " + ex.ToString() + " (" + ex.Message + ")");
                 }
                 catch (Exception e)
                 {
@@ -251,30 +263,24 @@ namespace OneDriveStreamer
         {
             try
             {
-                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                    async () =>
-                    {
-                        // Create the message dialog and set its content
-                        var messageDialog = new MessageDialog(message);
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+                {
+                    // Create the message dialog and set its content
+                    var messageDialog = new MessageDialog(message);
 
-                        // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
-                        messageDialog.Commands.Add(new UICommand(
-                             loader.GetString("Error/TryAgain"),
-                            new UICommandInvokedHandler(InitializeMovie)));
-                        messageDialog.Commands.Add(new UICommand(
-                            loader.GetString("Error/BackToMain"),
-                            new UICommandInvokedHandler(ExitPlayer)));
+                    // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
+                    messageDialog.Commands.Add(new UICommand(loader.GetString("Error/TryAgain"), new UICommandInvokedHandler(InitializeMovie)));
+                    messageDialog.Commands.Add(new UICommand(loader.GetString("Error/BackToMain"), new UICommandInvokedHandler(ExitPlayer)));
 
-                        // Set the command that will be invoked by default
-                        messageDialog.DefaultCommandIndex = 0;
+                    // Set the command that will be invoked by default
+                    messageDialog.DefaultCommandIndex = 0;
 
-                        // Set the command to be invoked when escape is pressed
-                        messageDialog.CancelCommandIndex = 1;
+                    // Set the command to be invoked when escape is pressed
+                    messageDialog.CancelCommandIndex = 1;
 
-                        // Show the message dialog
-                        await messageDialog.ShowAsync();
-                    }
-                );
+                    // Show the message dialog
+                    await messageDialog.ShowAsync();
+                });
             }
             catch (Exception e)
             {
