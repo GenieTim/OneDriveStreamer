@@ -73,8 +73,8 @@ namespace OneDriveStreamer
         private async void MediaPlayer_MediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
         {
             System.Diagnostics.Debug.WriteLine("MediaPlayer MediaFailed");
-            // only retry if last retry was not within last 2 minutes
-            if (DateTimeOffset.UtcNow.CompareTo(lastRetry.AddMinutes(2)) < 0)
+            // only retry if last retry was not within last 2 minutes: lastRetry + 2 min still earlier than now
+            if (DateTimeOffset.Compare(DateTimeOffset.UtcNow, lastRetry.AddMinutes(2)) > 0)
             {
                 // reload
                 await SetVideoSourceKeepingPlaytime(false);
@@ -103,7 +103,7 @@ namespace OneDriveStreamer
             }
         }
 
-        private async void PlaybackSession_PlaybackStateChangedAsync(MediaPlaybackSession sender, object args)
+        private /* async */ void PlaybackSession_PlaybackStateChangedAsync(MediaPlaybackSession sender, object args)
         {
             if (sender.PlaybackState.Equals(MediaPlaybackState.Paused))
             {

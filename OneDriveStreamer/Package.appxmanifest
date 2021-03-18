@@ -4,7 +4,7 @@
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
 
-  <Identity Name="54989BernhardWebstudio.OneDriveStreamer" Publisher="CN=C54C9B41-1CE3-43AA-B3E9-72BEEDA114A3" Version="1.1.46.0" />
+  <Identity Name="54989BernhardWebstudio.OneDriveStreamer" Publisher="CN=C54C9B41-1CE3-43AA-B3E9-72BEEDA114A3" Version="1.1.47.0" />
 
   <mp:PhoneIdentity PhoneProductId="4a89a167-94a4-4131-8e4e-637dd44bbf5a" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

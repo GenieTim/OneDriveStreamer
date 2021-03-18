@@ -110,6 +110,17 @@ namespace OneDriveStreamer
         {
             try
             {
+                Analytics.TrackEvent("Registering ErrorDialog", new Dictionary<string, string> {
+                     { "Message", message }
+                    });
+            }
+            catch (Exception e)
+            {
+                // let's not do anything about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
+            try
+            {
                 await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
                     async () =>
                     { // Create the message dialog and set its content
@@ -118,10 +129,10 @@ namespace OneDriveStreamer
                         // Add commands and set their callbacks; both buttons use the same callback function instead of inline event handlers
                         messageDialog.Commands.Add(new UICommand(
                            l18nLoader.GetString("Error/TryAgain"),
-                            new UICommandInvokedHandler(async (IUICommand command) => { await ResetListFilesFolders(); await Dialog_Closed(messageDialog); })));
+                            new UICommandInvokedHandler(async (IUICommand command) => { await Dialog_Closed(messageDialog); await ResetListFilesFolders(); })));
                         messageDialog.Commands.Add(new UICommand(
                            l18nLoader.GetString("Error/CloseApp"),
-                            new UICommandInvokedHandler(ExitApp)));
+                            new UICommandInvokedHandler((IUICommand command) => { DialogQueue.Clear(); ExitApp(command); })));
 
                         // Set the command that will be invoked by default
                         messageDialog.DefaultCommandIndex = 0;
@@ -139,17 +150,6 @@ namespace OneDriveStreamer
                         }
                     }
                 );
-                try
-                {
-                    Analytics.TrackEvent("Showing ErrorDialog", new Dictionary<string, string> {
-                     { "Message", message }
-                    });
-                }
-                catch (Exception e)
-                {
-                    // let's not do anything about this.
-                    System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
-                }
             }
             catch (Exception e)
             {
@@ -159,17 +159,45 @@ namespace OneDriveStreamer
                         { "Where", "MainPage.xaml:ExitOrRetryWithMessage"}
                     });
             }
+
+            try
+            {
+                Analytics.TrackEvent("Registered ErrorDialog", new Dictionary<string, string> {
+                     { "Message", message }
+                    });
+            }
+            catch (Exception e)
+            {
+                // let's not do anything about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
         }
 
         private static async Task Dialog_Closed(MessageDialog sender)
         {
             try
             {
-                DialogQueue.Remove(sender);
-                if (DialogQueue.Count > 0)
-                {
-                    await DialogQueue[0].ShowAsync();
-                }
+                Analytics.TrackEvent("Removing ErrorDialog", new Dictionary<string, string> {
+                     { "DialogContent", sender.Content },
+                     { "DialogQueueLength", DialogQueue.Count.ToString() }
+                    });
+            }
+            catch (Exception e)
+            {
+                // let's not do anything about this.
+                System.Diagnostics.Debug.WriteLine("Exception when submitting analytics: " + e.Message);
+            }
+            try
+            {
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                   async () =>
+                   {
+                       DialogQueue.Remove(sender);
+                       if (DialogQueue.Count > 0)
+                       {
+                           await DialogQueue[0].ShowAsync();
+                       }
+                   });
             }
             catch (Exception e)
             {
