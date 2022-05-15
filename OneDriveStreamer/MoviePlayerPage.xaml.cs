@@ -329,6 +329,7 @@ namespace OneDriveStreamer
         // Handles system-level BackRequested events and page-level back button Click events
         private bool On_BackRequested()
         {
+            mediaPlayer.MediaPlayer.Pause();
             mediaPlayer.Source = null;
             AllowDisplayOff();
             if (Frame.CanGoBack)
